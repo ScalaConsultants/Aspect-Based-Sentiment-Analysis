@@ -20,7 +20,7 @@ def train(train_step: Callable,
           test_dataset: Iterable = None,
           epochs: int = 10,
           callbacks: List = None):
-    callbacks = CallbackList(callbacks)
+    callbacks = CallbackList(callbacks if callbacks else [])
     for epoch in range(epochs):
         callbacks.on_epoch_begin(epoch)
         train_loop(train_step, train_dataset, callbacks)
@@ -49,7 +49,7 @@ def post_train(model: transformers.TFBertForPreTraining,
                epochs: int,
                test_dataset: Iterable[LanguageModelTrainBatch] = None,
                callbacks: List[Callback] = None):
-    """ """
+    """ Post train (fine-tune) the pretrained language model. """
     def train_step(batch: LanguageModelTrainBatch):
         with tf.GradientTape() as tape:
             outputs = model.call(batch.token_ids,
@@ -79,7 +79,7 @@ def tune_extractor(model: BertABSClassifier,
                    epochs: int,
                    test_dataset: Iterable[ExtractorTrainBatch] = None,
                    callbacks: List[Callback] = None):
-    """ """
+    """ This routines tune the extractor along with the language model. """
     def train_step(batch: ExtractorTrainBatch):
         with tf.GradientTape() as tape:
             outputs = model.call_extractor(batch.token_ids,
@@ -108,14 +108,15 @@ def tune_classifier(model: BertABSClassifier,
                     epochs: int,
                     test_dataset: Iterable[ClassifierTrainBatch] = None,
                     callbacks: List[Callback] = None):
-    """ """
+    """ This routines tune the classifier along with the language model. """
     def train_step(batch: ClassifierTrainBatch):
         with tf.GradientTape() as tape:
             outputs = model.call_classifier(batch.token_ids,
                                             attention_mask=batch.attention_mask,
                                             token_type_ids=batch.token_type_ids,
                                             training=True)
-            loss_value = losses.classifier_loss(...)
+            logits, *details = outputs
+            loss_value = losses.classifier_loss(batch.target_labels, logits)
 
         variables = model.language_model.bert.trainable_variables \
                     + model.classifier.trainable_variables
@@ -127,7 +128,8 @@ def tune_classifier(model: BertABSClassifier,
         outputs = model.call_classifier(batch.token_ids,
                                         attention_mask=batch.attention_mask,
                                         token_type_ids=batch.token_type_ids)
-        loss_value = losses.classifier_loss(...)
+        logits, *details = outputs
+        loss_value = losses.classifier_loss(batch.target_labels, logits)
         return loss_value, outputs
 
     train(train_step, train_dataset, test_step, test_dataset, epochs, callbacks)
