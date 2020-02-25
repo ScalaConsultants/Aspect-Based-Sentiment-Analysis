@@ -1,12 +1,19 @@
 from abc import ABC
+from enum import IntEnum
 from dataclasses import dataclass
 from typing import List
+
+
+class Label(IntEnum):
+    neutral = 0
+    negative = 1
+    positive = 2
 
 
 @dataclass(frozen=True)
 class Aspect:
     name: str
-    label: int
+    label: Label
 
 
 @dataclass(frozen=True)
