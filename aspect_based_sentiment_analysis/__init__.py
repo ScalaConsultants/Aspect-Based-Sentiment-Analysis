@@ -6,9 +6,18 @@ from . import models
 from . import pipelines
 from . import plots
 
+from .data_types import Label
+from .data_types import Aspect
+from .data_types import ClassifierExample
+from .data_types import ExtractorExample
+from .data_types import LanguageModelExample
+
 from .preprocessing.language_model_input import DocumentStore
+from .preprocessing.language_model_input import LanguageModelExample
 from .preprocessing.language_model_input import LanguageModelDataset
+from .preprocessing.extractor_model_input import ExtractorExample
 from .preprocessing.extractor_model_input import ExtractorDataset
+from .preprocessing.classifier_model_input import ClassifierExample
 from .preprocessing.classifier_model_input import ClassifierDataset
 
 from .models import BertABSCConfig
