@@ -30,10 +30,14 @@ class ABSClassifier(ABC):
 
 class BertABSCConfig(transformers.BertConfig):
 
-    def __init__(self, tags: Tuple[str] = tuple('BIEO'), **kwargs):
+    def __init__(self,
+                 num_polarities: int = 3,
+                 tags: Tuple[str] = tuple('BIEO'),
+                 **kwargs):
         super().__init__(**kwargs)
         self.tags = tags
         self.num_tags = len(tags)
+        self.num_polarities = num_polarities
 
 
 class BertABSClassifier(ABSClassifier, transformers.TFBertPreTrainedModel):
@@ -50,7 +54,7 @@ class BertABSClassifier(ABSClassifier, transformers.TFBertPreTrainedModel):
         self.extractor = layers.Dense(config.num_tags,
                                       kernel_initializer=initializer,
                                       name='extractor')
-        self.classifier = layers.Dense(config.num_labels,
+        self.classifier = layers.Dense(config.num_polarities,
                                        kernel_initializer=initializer,
                                        name='classifier')
 

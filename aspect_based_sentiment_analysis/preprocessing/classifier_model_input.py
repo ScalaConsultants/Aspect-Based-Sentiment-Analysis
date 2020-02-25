@@ -23,7 +23,7 @@ class ClassifierDataset(InMemoryDataset):
     examples: List[ClassifierExample]
     batch_size: int
     tokenizer: transformers.PreTrainedTokenizer
-    classes: int = 3
+    num_polarities: int = 3
 
     def preprocess_batch(
             self, batch_examples: List[ClassifierExample]
@@ -39,7 +39,7 @@ class ClassifierDataset(InMemoryDataset):
         attention_mask = encoded['attention_mask']
         token_type_ids = encoded['token_type_ids']
         target_labels = tf.one_hot([e.aspect.label for e in batch_examples],
-                                   depth=self.classes)
+                                   depth=self.num_polarities)
 
         return ClassifierTrainBatch(
             input_ids,
