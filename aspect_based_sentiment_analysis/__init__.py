@@ -14,6 +14,7 @@ from .data_types import LanguageModelExample
 
 from .callbacks import Callback
 from .callbacks import CallbackList
+from .callbacks import Logger
 from .callbacks import History
 
 from .preprocessing.language_model_input import DocumentStore
@@ -34,6 +35,10 @@ from .loads import load_docs
 from .loads import load_classifier_examples
 from .loads import load_extractor_examples
 from .loads import load_multimodal_examples
+
+from .losses import classifier_loss
+from .losses import extractor_loss
+from .losses import language_model_loss
 
 from .plots import plot_patterns
 
