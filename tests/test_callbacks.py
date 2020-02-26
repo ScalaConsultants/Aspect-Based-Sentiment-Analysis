@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 from testfixtures import LogCapture
 from aspect_based_sentiment_analysis import History
 
@@ -12,11 +13,12 @@ def test_history_callback():
             history.on_epoch_begin(i)
             for batch in range(100):
                 train_loss = np.random.normal(loc=10-i, scale=0.5, size=32)
-                train_step_outputs = [train_loss, 'model_outputs']
+                tf_train_loss = tf.convert_to_tensor(train_loss)
+                train_step_outputs = [tf_train_loss, 'model_outputs']
                 history.on_train_batch_end(batch, batch_input, *train_step_outputs)
 
-                test_loss = train_loss + 1
-                test_step_outputs = [test_loss, 'model_outputs']
+                tf_test_loss = tf_train_loss + 1
+                test_step_outputs = [tf_test_loss, 'model_outputs']
                 history.on_test_batch_end(batch, batch_input, *test_step_outputs)
             history.on_epoch_end(i)
 
