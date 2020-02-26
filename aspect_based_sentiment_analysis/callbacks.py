@@ -107,9 +107,9 @@ class History(Callback):
     def on_train_batch_end(self, i: int, batch, *train_step_outputs):
         loss_value, *model_outputs = train_step_outputs
         self.train_metric(loss_value)
-        self.train_details[self.epoch].extend(loss_value)
+        self.train_details[self.epoch].extend(loss_value.numpy())
 
     def on_test_batch_end(self, i: int, batch, *test_step_outputs):
         loss_value, *model_outputs = test_step_outputs
         self.test_metric(loss_value)
-        self.test_details[self.epoch].extend(loss_value)
+        self.test_details[self.epoch].extend(loss_value.numpy())
