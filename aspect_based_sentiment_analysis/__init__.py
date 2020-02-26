@@ -12,6 +12,10 @@ from .data_types import ClassifierExample
 from .data_types import ExtractorExample
 from .data_types import LanguageModelExample
 
+from .callbacks import Callback
+from .callbacks import CallbackList
+from .callbacks import History
+
 from .preprocessing.language_model_input import DocumentStore
 from .preprocessing.language_model_input import LanguageModelExample
 from .preprocessing.language_model_input import LanguageModelDataset

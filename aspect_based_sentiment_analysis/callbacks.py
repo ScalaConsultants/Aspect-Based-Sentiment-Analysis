@@ -1,8 +1,11 @@
 import logging
 from abc import ABC
 from dataclasses import dataclass
+from dataclasses import field
+from typing import Dict
 from typing import List
-logger = logging.getLogger('callbacks')
+import tensorflow as tf
+logger = logging.getLogger('absa.callbacks')
 
 
 class Callback(ABC):
@@ -13,20 +16,20 @@ class Callback(ABC):
     def on_epoch_end(self, i: int):
         """ """
 
-    def on_train_batch_end(self, i: int, batch, *model_outputs):
+    def on_train_batch_end(self, i: int, batch, *train_step_outputs):
         """ """
 
     def on_train_end(self):
         """ """
 
-    def on_test_batch_end(self, i: int, batch, *model_outputs):
+    def on_test_batch_end(self, i: int, batch, *test_step_outputs):
         """ """
 
     def on_test_end(self):
         """ """
 
 
-@dataclass(frozen=True)
+@dataclass
 class CallbackList(Callback):
     callbacks: List[Callback]
 
@@ -55,7 +58,7 @@ class CallbackList(Callback):
             callback.on_test_end()
 
 
-@dataclass(frozen=True)
+@dataclass
 class Logger(Callback):
     level: int = 20
     file_path: str = None
@@ -73,3 +76,40 @@ class Logger(Callback):
             file_handler = logging.FileHandler(self.file_path, mode='w')
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)
+
+
+@dataclass
+class History(Callback):
+    epoch: int = 0
+    train_metric: tf.keras.metrics.Metric = field(default_factory=tf.keras.metrics.Mean)
+    test_metric: tf.keras.metrics.Metric = field(default_factory=tf.keras.metrics.Mean)
+    train: Dict = field(default_factory=dict)
+    test: Dict = field(default_factory=dict)
+    train_details: Dict = field(default_factory=dict)
+    test_details: Dict = field(default_factory=dict)
+
+    def on_epoch_begin(self, i: int):
+        """ Resets all of the metric state variables. """
+        self.epoch = i+1
+        self.train_details[self.epoch] = []
+        self.test_details[self.epoch] = []
+        self.train_metric.reset_states()
+        self.test_metric.reset_states()
+
+    def on_epoch_end(self, i: int):
+        self.train[self.epoch] = self.train_metric.result().numpy()
+        self.test[self.epoch] = self.test_metric.result().numpy()
+        message = f'Epoch {self.epoch:3d}    ' \
+                  f'Average Train Loss: {self.train[self.epoch]:.5f}    ' \
+                  f'Average Test Loss: {self.test[self.epoch]:.5f}'
+        logger.info(message)
+
+    def on_train_batch_end(self, i: int, batch, *train_step_outputs):
+        loss_value, *model_outputs = train_step_outputs
+        self.train_metric(loss_value)
+        self.train_details[self.epoch].extend(loss_value)
+
+    def on_test_batch_end(self, i: int, batch, *test_step_outputs):
+        loss_value, *model_outputs = test_step_outputs
+        self.test_metric(loss_value)
+        self.test_details[self.epoch].extend(loss_value)
