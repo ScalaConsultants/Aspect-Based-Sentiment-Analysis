@@ -31,15 +31,15 @@ def train(train_step: Callable,
 
 def train_loop(train_step: Callable, dataset: Iterable, callbacks: Callback):
     for i, batch in enumerate(dataset):
-        outputs = train_step(batch)
-        callbacks.on_train_batch_end(i, batch, *outputs)
+        train_step_outputs = train_step(batch)
+        callbacks.on_train_batch_end(i, batch, *train_step_outputs)
     callbacks.on_train_end()
 
 
 def test_loop(test_step: Callable, dataset: Iterable, callbacks: Callback):
     for i, batch in enumerate(dataset):
-        outputs = test_step(batch)
-        callbacks.on_test_batch_end(i, batch, *outputs)
+        test_step_outputs = test_step(batch)
+        callbacks.on_test_batch_end(i, batch, *test_step_outputs)
     callbacks.on_test_end()
 
 
@@ -52,23 +52,23 @@ def post_train(model: transformers.TFBertForPreTraining,
     """ Post train (fine-tune) the pretrained language model. """
     def train_step(batch: LanguageModelTrainBatch):
         with tf.GradientTape() as tape:
-            outputs = model.call(batch.token_ids,
-                                 attention_mask=batch.attention_mask,
-                                 token_type_ids=batch.token_type_ids,
-                                 training=True)
+            model_outputs = model.call(batch.token_ids,
+                                       attention_mask=batch.attention_mask,
+                                       token_type_ids=batch.token_type_ids,
+                                       training=True)
             loss_value = losses.language_model_loss(...)
 
         variables = model.trainable_variables
         grads = tape.gradient(loss_value, variables)
         optimizer.apply_gradients(zip(grads, variables))
-        return loss_value, outputs
+        return [loss_value, *model_outputs]
 
     def test_step(batch: LanguageModelTrainBatch):
-        outputs = model.call(batch.token_ids,
-                             attention_mask=batch.attention_mask,
-                             token_type_ids=batch.token_type_ids)
+        model_outputs = model.call(batch.token_ids,
+                                   attention_mask=batch.attention_mask,
+                                   token_type_ids=batch.token_type_ids)
         loss_value = losses.language_model_loss(...)
-        return loss_value, outputs
+        return [loss_value, *model_outputs]
 
     train(train_step, train_dataset, test_step, test_dataset, epochs, callbacks)
 
@@ -82,22 +82,23 @@ def tune_extractor(model: BertABSClassifier,
     """ This routines tune the extractor along with the language model. """
     def train_step(batch: ExtractorTrainBatch):
         with tf.GradientTape() as tape:
-            outputs = model.call_extractor(batch.token_ids,
-                                           attention_mask=batch.attention_mask,
-                                           training=True)
+            model_outputs = model.call_extractor(batch.token_ids,
+                                                 attention_mask=batch.attention_mask,
+                                                 training=True)
+            logits, *details = model_outputs
             loss_value = losses.extractor_loss(...)
 
         variables = model.language_model.bert.trainable_variables \
                     + model.extractor.trainable_variables
         grads = tape.gradient(loss_value, variables)
         optimizer.apply_gradients(zip(grads, variables))
-        return loss_value, outputs
+        return [loss_value, *model_outputs]
 
     def test_step(batch: ExtractorTrainBatch):
-        outputs = model.call_extractor(batch.token_ids,
-                                       attention_mask=batch.attention_mask)
+        model_outputs = model.call_extractor(batch.token_ids,
+                                             attention_mask=batch.attention_mask)
         loss_value = losses.extractor_loss(...)
-        return loss_value, outputs
+        return [loss_value, *model_outputs]
 
     train(train_step, train_dataset, test_step, test_dataset, epochs, callbacks)
 
@@ -111,25 +112,25 @@ def tune_classifier(model: BertABSClassifier,
     """ This routines tune the classifier along with the language model. """
     def train_step(batch: ClassifierTrainBatch):
         with tf.GradientTape() as tape:
-            outputs = model.call_classifier(batch.token_ids,
-                                            attention_mask=batch.attention_mask,
-                                            token_type_ids=batch.token_type_ids,
-                                            training=True)
-            logits, *details = outputs
+            model_outputs = model.call_classifier(batch.token_ids,
+                                                  attention_mask=batch.attention_mask,
+                                                  token_type_ids=batch.token_type_ids,
+                                                  training=True)
+            logits, *details = model_outputs
             loss_value = losses.classifier_loss(batch.target_labels, logits)
 
         variables = model.language_model.bert.trainable_variables \
                     + model.classifier.trainable_variables
         grads = tape.gradient(loss_value, variables)
         optimizer.apply_gradients(zip(grads, variables))
-        return loss_value, outputs
+        return [loss_value, *model_outputs]
 
     def test_step(batch: ClassifierTrainBatch):
-        outputs = model.call_classifier(batch.token_ids,
-                                        attention_mask=batch.attention_mask,
-                                        token_type_ids=batch.token_type_ids)
-        logits, *details = outputs
+        model_outputs = model.call_classifier(batch.token_ids,
+                                              attention_mask=batch.attention_mask,
+                                              token_type_ids=batch.token_type_ids)
+        logits, *details = model_outputs
         loss_value = losses.classifier_loss(batch.target_labels, logits)
-        return loss_value, outputs
+        return [loss_value, *model_outputs]
 
     train(train_step, train_dataset, test_step, test_dataset, epochs, callbacks)
