@@ -84,8 +84,3 @@ def test_sanity_classifier():
     # That's all, clean up the configuration, and the temporary saved model.
     os.remove('config.json')
     os.remove('tf_model.h5')
-
-
-@pytest.mark.sanity_check
-def test_semeval_classifier():
-    pass
