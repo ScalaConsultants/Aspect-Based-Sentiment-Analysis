@@ -74,10 +74,12 @@ def test_sanity_classifier():
 
     # The training procedure is roughly verified. Now, using our tuned model,
     # we can build the `BertPipeline`. The pipeline is the high level
-    # interface to perform predictions.
+    # interface to perform predictions. The model should be highly confident
+    # that this is the positive example (verify the softmax scores).
     nlp = absa.BertPipeline(model, tokenizer)
     aspect_prediction, = nlp.predict(example.text, aspect_names=['breakfast'])
     assert aspect_prediction.label == absa.Label.positive
+    assert np.allclose(aspect_prediction.scores, [0.0, 0.0, 0.99], atol=0.01)
 
     # That's all, clean up the configuration, and the temporary saved model.
     os.remove('config.json')

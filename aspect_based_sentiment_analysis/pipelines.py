@@ -8,6 +8,7 @@ import tensorflow as tf
 import transformers
 
 from .data_types import AspectPrediction
+from .data_types import Label
 from .models import BertABSClassifier
 
 
@@ -62,9 +63,10 @@ class BertPipeline(Pipeline):
         return self.build_aspect_predictions(aspect_names, classifier_logits, text)
 
     @staticmethod
-    def build_aspect_predictions(names, logits, text):
+    def build_aspect_predictions(aspect_names, logits, text):
         """ """
         scores = tf.nn.softmax(logits, axis=1).numpy()
-        labels = [int(score) for score in scores]
+        predictions = scores.argmax(axis=1)
+        labels = [Label(int(prediction)) for prediction in predictions]
         return [AspectPrediction(name, label, text, score)
-                for name, label, score in zip(names, labels, scores)]
+                for name, label, score in zip(aspect_names, labels, scores)]

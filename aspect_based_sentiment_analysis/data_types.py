@@ -19,7 +19,7 @@ class Aspect:
 @dataclass(frozen=True)
 class AspectPrediction(Aspect):
     text: str
-    score: float = None
+    scores: float = None
     confidence: float = None
 
     def __str__(self):

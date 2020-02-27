@@ -2,7 +2,7 @@ import pytest
 
 
 def pytest_addoption(parser):
-    parser.addoption("--run-sanity_checks", action="store_true",
+    parser.addoption("--run-sanity-checks", action="store_true",
                      default=False, help="Run sanity checks")
 
 
@@ -12,10 +12,10 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--run-sanity_checks"):
+    if config.getoption("--run-sanity-checks"):
         # --run-sanity-checks given in cli: do not skip sanity checks
         return
-    reason_desc = "need --run-sanity_checks option to run"
+    reason_desc = "need --run-sanity-checks option to run"
     skip_sanity_check = pytest.mark.skip(reason=reason_desc)
     for item in items:
         if "sanity_check" in item.keywords:
