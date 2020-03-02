@@ -1,6 +1,14 @@
 import io
+import os
+import numpy as np
+import pytest
 from data.semeval import adapter
 from aspect_based_sentiment_analysis import Label
+
+root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
+data_dir = os.path.join(root_dir, 'data', 'semeval')
+laptop_data = os.path.join(data_dir, 'Laptop_Train_v2.xml')
+restaurant_data = os.path.join(data_dir, 'Restaurants_Train_v2.xml')
 
 
 def test_read_sentences():
@@ -66,3 +74,59 @@ def test_generate_classifier_examples():
     assert example_2.aspect.name == 'battery life'
     assert example_2.aspect.label == Label.positive
     assert example_1.text == example_2.text == text.lower()
+
+
+@pytest.mark.skipif(not os.path.isfile(restaurant_data),
+                    reason='Please download the restaurant train dataset to run a test.')
+def test_restaurant_dataset():
+    with open(restaurant_data, 'r') as file:
+        raw_sentences = adapter.read_sentences(file)
+        assert len(raw_sentences) == 3041
+
+    stats = {'rejected': 0, 'conflicts': 0}
+    sentences = adapter.validate_sentences(raw_sentences, stats)
+    sentences = list(sentences)
+    assert len(sentences) == 1978
+    assert stats['rejected'] == 1063
+    assert stats['conflicts'] == 91
+
+    generate = adapter.generate_classifier_examples
+    examples = [example
+                for sentence in sentences
+                for example in generate(sentence)]
+
+    assert len(examples) == 3602
+    # Check distribution of polarities
+    count = lambda label: sum(True for example in examples
+                              if example.aspect.label == label)
+    ratios = np.array([count(label) for label in Label]) / len(examples)
+    # The labels are in the order: [neutral, negative, positive]
+    assert ratios.round(2).tolist() == [0.18, 0.22, 0.6]
+
+
+@pytest.mark.skipif(not os.path.isfile(laptop_data),
+                    reason='Please download the laptop train dataset to run a test.')
+def test_laptop_dataset():
+    with open(laptop_data, 'r') as file:
+        raw_sentences = adapter.read_sentences(file)
+        assert len(raw_sentences) == 3045
+
+    stats = {'rejected': 0, 'conflicts': 0}
+    sentences = adapter.validate_sentences(raw_sentences, stats)
+    sentences = list(sentences)
+    assert len(sentences) == 1462
+    assert stats['rejected'] == 1583
+    assert stats['conflicts'] == 45
+
+    generate = adapter.generate_classifier_examples
+    examples = [example
+                for sentence in sentences
+                for example in generate(sentence)]
+
+    assert len(examples) == 2313
+    # Check distribution of polarities
+    count = lambda label: sum(True for example in examples
+                              if example.aspect.label == label)
+    ratios = np.array([count(label) for label in Label]) / len(examples)
+    # The labels are in the order: [neutral, negative, positive]
+    assert ratios.round(2).tolist() == [0.2, 0.37, 0.43]
