@@ -5,6 +5,8 @@ import pytest
 from data.semeval import adapter
 from aspect_based_sentiment_analysis import Label
 
+# More details can be found here:
+# https://github.com/davidsbatista/Aspect-Based-Sentiment-Analysis/tree/master/datasets/ABSA-SemEval2014
 root_dir = os.path.join(os.path.dirname(__file__), '..', '..')
 data_dir = os.path.join(root_dir, 'data', 'semeval')
 laptop_data = os.path.join(data_dir, 'Laptop_Train_v2.xml')
