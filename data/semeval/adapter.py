@@ -19,7 +19,9 @@ def validate_sentences(sentences, stats):
         # According to documentation is only a single <aspectTerms>
         aspects = sentence.find('aspectTerms') or []
 
-        for aspect in aspects:
+        # An iterator over aspects should be materialized, otherwise the
+        # first occurrence of the "conflict" breaks a loop (due to remove).
+        for aspect in list(aspects):
             polarity = aspect.attrib['polarity']
             if polarity == 'conflict':
                 aspects.remove(aspect)
