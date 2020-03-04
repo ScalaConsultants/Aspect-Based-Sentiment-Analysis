@@ -5,6 +5,7 @@ from . import loads
 from . import models
 from . import pipelines
 from . import plots
+from . import utils
 
 from .data_types import Label
 from .data_types import Aspect
