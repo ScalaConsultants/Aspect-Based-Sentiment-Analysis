@@ -18,6 +18,7 @@ from .callbacks import CallbackList
 from .callbacks import Logger
 from .callbacks import History
 from .callbacks import LossHistory
+from .callbacks import ModelCheckpoint
 
 from .preprocessing.language_model_input import DocumentStore
 from .preprocessing.language_model_input import LanguageModelExample

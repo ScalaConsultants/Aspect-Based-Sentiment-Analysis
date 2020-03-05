@@ -1,3 +1,4 @@
+import os
 import logging
 from abc import ABC
 from abc import abstractmethod
@@ -6,28 +7,26 @@ from dataclasses import field
 from typing import Callable
 from typing import Dict
 from typing import List
+
+import numpy as np
 import tensorflow as tf
+import transformers
+
 logger = logging.getLogger('absa.callbacks')
 
 
 class Callback(ABC):
 
-    def on_epoch_begin(self, i: int):
+    def on_epoch_begin(self, epoch: int):
         """ """
 
-    def on_epoch_end(self, i: int):
+    def on_epoch_end(self, epoch: int):
         """ """
 
     def on_train_batch_end(self, i: int, batch, *train_step_outputs):
         """ """
 
-    def on_train_end(self):
-        """ """
-
     def on_test_batch_end(self, i: int, batch, *test_step_outputs):
-        """ """
-
-    def on_test_end(self):
         """ """
 
 
@@ -35,29 +34,21 @@ class Callback(ABC):
 class CallbackList(Callback):
     callbacks: List[Callback]
 
-    def on_epoch_begin(self, i: int):
+    def on_epoch_begin(self, epoch: int):
         for callback in self.callbacks:
-            callback.on_epoch_begin(i)
+            callback.on_epoch_begin(epoch)
 
-    def on_epoch_end(self, i: int):
+    def on_epoch_end(self, epoch: int):
         for callback in self.callbacks:
-            callback.on_epoch_end(i)
+            callback.on_epoch_end(epoch)
 
     def on_train_batch_end(self, *args):
         for callback in self.callbacks:
             callback.on_train_batch_end(*args)
 
-    def on_train_end(self):
-        for callback in self.callbacks:
-            callback.on_train_end()
-
     def on_test_batch_end(self, *args):
         for callback in self.callbacks:
             callback.on_test_batch_end(*args)
-
-    def on_test_end(self):
-        for callback in self.callbacks:
-            callback.on_test_end()
 
 
 @dataclass
@@ -84,7 +75,7 @@ class Logger(Callback):
 class History(Callback, ABC):
     name: str
     epoch: int = 0
-    verbose: bool = False
+    verbose: bool = True
     metric: Callable[[], tf.keras.metrics.Metric] = tf.keras.metrics.Mean
     train: Dict = field(default_factory=dict)
     test: Dict = field(default_factory=dict)
@@ -95,21 +86,21 @@ class History(Callback, ABC):
         self.train_metric = self.metric()
         self.test_metric = self.metric()
 
-    def on_epoch_begin(self, i: int):
+    def on_epoch_begin(self, epoch: int):
         """ Resets all of the metric state variables. """
-        self.epoch = i+1
-        self.train_details[self.epoch] = []
-        self.test_details[self.epoch] = []
+        self.epoch = epoch
+        self.train_details[epoch] = []
+        self.test_details[epoch] = []
         self.train_metric.reset_states()
         self.test_metric.reset_states()
 
-    def on_epoch_end(self, i: int):
-        self.train[self.epoch] = self.train_metric.result().numpy()
-        self.test[self.epoch] = self.test_metric.result().numpy()
+    def on_epoch_end(self, epoch: int):
+        self.train[epoch] = self.train_metric.result().numpy()
+        self.test[epoch] = self.test_metric.result().numpy()
         if self.verbose:
-            message = f'Epoch {self.epoch:3d} {self.name}:    ' \
-                      f'Average Train {self.train[self.epoch]:.5f}    ' \
-                      f'Average Test {self.test[self.epoch]:.5f}'
+            message = f'Epoch {epoch:3d} {self.name}:    ' \
+                      f'Average Train {self.train[epoch]:.5f}    ' \
+                      f'Average Test {self.test[epoch]:.5f}'
             logger.info(message)
 
     @abstractmethod
@@ -135,3 +126,35 @@ class LossHistory(History):
         loss_value, *model_outputs = test_step_outputs
         self.test_metric(loss_value)
         self.test_details[self.epoch].extend(loss_value.numpy())
+
+
+@dataclass
+class ModelCheckpoint(Callback):
+    model: transformers.TFPreTrainedModel
+    loss_history: LossHistory
+    home_dir: str = 'checkpoints'
+    best_result: float = np.inf
+    best_model_dir: str = ''
+    verbose: bool = True
+
+    def __post_init__(self):
+        """ Create the directory for saving checkpoints. """
+        if not os.path.isdir(self.home_dir):
+            abs_path = os.path.abspath(self.home_dir)
+            text = f'Make a checkpoint directory: {abs_path}'
+            logger.info(text)
+            os.makedirs(self.home_dir)
+
+    def on_epoch_end(self, epoch: int):
+        """ Pass the `ModelCheckpoint` callback after the `LossHistory`. """
+        result = self.loss_history.test[epoch]
+        if result < self.best_result:
+            name = f'{epoch:02d}-{result:.2f}'
+            model_dir = os.path.join(self.home_dir, name)
+            self.model.save_pretrained(model_dir)
+            self.best_result = result
+            self.best_model_dir = model_dir
+
+            text = f'The new best result: {result:.2f}'
+            if self.verbose:
+                logging.info(text)

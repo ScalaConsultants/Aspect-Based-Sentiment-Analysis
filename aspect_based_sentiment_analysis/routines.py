@@ -34,14 +34,12 @@ def train_loop(train_step: Callable, dataset: Iterable, callbacks: Callback):
     for i, batch in enumerate(dataset):
         train_step_outputs = train_step(batch)
         callbacks.on_train_batch_end(i, batch, *train_step_outputs)
-    callbacks.on_train_end()
 
 
 def test_loop(test_step: Callable, dataset: Iterable, callbacks: Callback):
     for i, batch in enumerate(dataset):
         test_step_outputs = test_step(batch)
         callbacks.on_test_batch_end(i, batch, *test_step_outputs)
-    callbacks.on_test_end()
 
 
 def post_train(model: transformers.TFBertForPreTraining,
