@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 from testfixtures import LogCapture
-from aspect_based_sentiment_analysis import History
+from aspect_based_sentiment_analysis import LossHistory
 
 
-def test_history_callback():
-    history = History()
+def test_loss_history_callback():
+    history = LossHistory(verbose=True)
     # The simplified routine.
     batch_input = None
     with LogCapture() as log:

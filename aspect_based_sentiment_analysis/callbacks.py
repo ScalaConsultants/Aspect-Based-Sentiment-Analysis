@@ -1,7 +1,9 @@
 import logging
 from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
 from dataclasses import field
+from typing import Callable
 from typing import Dict
 from typing import List
 import tensorflow as tf
@@ -79,14 +81,19 @@ class Logger(Callback):
 
 
 @dataclass
-class History(Callback):
+class History(Callback, ABC):
+    name: str
     epoch: int = 0
-    train_metric: tf.keras.metrics.Metric = field(default_factory=tf.keras.metrics.Mean)
-    test_metric: tf.keras.metrics.Metric = field(default_factory=tf.keras.metrics.Mean)
+    verbose: bool = False
+    metric: Callable[[], tf.keras.metrics.Metric] = tf.keras.metrics.Mean
     train: Dict = field(default_factory=dict)
     test: Dict = field(default_factory=dict)
     train_details: Dict = field(default_factory=dict)
     test_details: Dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.train_metric = self.metric()
+        self.test_metric = self.metric()
 
     def on_epoch_begin(self, i: int):
         """ Resets all of the metric state variables. """
@@ -99,10 +106,25 @@ class History(Callback):
     def on_epoch_end(self, i: int):
         self.train[self.epoch] = self.train_metric.result().numpy()
         self.test[self.epoch] = self.test_metric.result().numpy()
-        message = f'Epoch {self.epoch:3d}    ' \
-                  f'Average Train Loss: {self.train[self.epoch]:.5f}    ' \
-                  f'Average Test Loss: {self.test[self.epoch]:.5f}'
-        logger.info(message)
+        if self.verbose:
+            message = f'Epoch {self.epoch:3d} {self.name}:    ' \
+                      f'Average Train {self.train[self.epoch]:.5f}    ' \
+                      f'Average Test {self.test[self.epoch]:.5f}'
+            logger.info(message)
+
+    @abstractmethod
+    def on_train_batch_end(self, i: int, batch, *train_step_outputs):
+        """ """
+
+    @abstractmethod
+    def on_test_batch_end(self, i: int, batch, *test_step_outputs):
+        """ """
+
+
+@dataclass
+class LossHistory(History):
+    metric = tf.keras.metrics.Mean
+    name: str = 'Loss'
 
     def on_train_batch_end(self, i: int, batch, *train_step_outputs):
         loss_value, *model_outputs = train_step_outputs
