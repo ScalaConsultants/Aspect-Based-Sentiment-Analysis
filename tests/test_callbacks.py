@@ -1,11 +1,18 @@
+import os
+from unittest.mock import MagicMock
+
 import numpy as np
 import tensorflow as tf
 from testfixtures import LogCapture
+
 from aspect_based_sentiment_analysis import LossHistory
+from aspect_based_sentiment_analysis import ModelCheckpoint
+from aspect_based_sentiment_analysis import BertABSCConfig
+from aspect_based_sentiment_analysis import BertABSClassifier
 
 
 def test_loss_history_callback():
-    history = LossHistory(verbose=True)
+    history = LossHistory()
     # The simplified routine.
     batch_input = None
     with LogCapture() as log:
@@ -37,3 +44,23 @@ def test_loss_history_callback():
     # Check log events
     assert len(log.records) == 10
     assert log.records[0].name == 'absa.callbacks'
+
+
+def test_model_checkpoint(tmp_path):
+    base_model_name = 'bert-base-uncased'
+    config = BertABSCConfig.from_pretrained(base_model_name)
+    model = BertABSClassifier.from_pretrained(base_model_name, config=config)
+
+    loss_history = MagicMock()
+    loss_history.test = {1: 5, 2: 3, 3: 5}
+    checkpoint = ModelCheckpoint(model, loss_history, tmp_path)
+
+    with LogCapture() as log:
+        for epoch in np.arange(1, 3+1):
+            checkpoint.on_epoch_begin(epoch)
+            checkpoint.on_epoch_end(epoch)
+
+    assert checkpoint.best_result == 3
+    assert os.path.basename(checkpoint.best_model_dir) == 'epoch-02-3.00'
+    records = [r for r in log.records if r.name == 'absa.callbacks']
+    assert len(records) == 2

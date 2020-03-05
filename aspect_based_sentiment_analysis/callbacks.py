@@ -149,12 +149,13 @@ class ModelCheckpoint(Callback):
         """ Pass the `ModelCheckpoint` callback after the `LossHistory`. """
         result = self.loss_history.test[epoch]
         if result < self.best_result:
-            name = f'{epoch:02d}-{result:.2f}'
+            name = f'epoch-{epoch:02d}-{result:.2f}'
             model_dir = os.path.join(self.home_dir, name)
+            os.mkdir(model_dir)
             self.model.save_pretrained(model_dir)
             self.best_result = result
             self.best_model_dir = model_dir
 
             text = f'The new best result: {result:.2f}'
             if self.verbose:
-                logging.info(text)
+                logger.info(text)
