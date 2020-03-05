@@ -2,6 +2,7 @@ from typing import Callable
 from typing import Iterable
 from typing import List
 
+import numpy as np
 import tensorflow as tf
 import transformers
 
@@ -21,7 +22,7 @@ def train(train_step: Callable,
           epochs: int = 10,
           callbacks: List = None):
     callbacks = CallbackList(callbacks if callbacks else [])
-    for epoch in range(epochs):
+    for epoch in np.arange(1, epochs+1):
         callbacks.on_epoch_begin(epoch)
         train_loop(train_step, train_dataset, callbacks)
         if test_step and test_dataset:
