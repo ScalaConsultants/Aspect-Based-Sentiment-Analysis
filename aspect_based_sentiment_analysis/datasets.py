@@ -1,5 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Iterable
 from typing import Iterator
 from typing import List
@@ -9,6 +10,7 @@ import numpy as np
 from .data_types import Example
 
 
+@dataclass
 class TrainBatch:
     """ """
 
