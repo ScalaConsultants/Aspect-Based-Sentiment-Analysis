@@ -98,7 +98,7 @@ class History(Callback, ABC):
         self.train[epoch] = self.train_metric.result().numpy()
         self.test[epoch] = self.test_metric.result().numpy()
         if self.verbose:
-            message = f'Epoch {epoch:3d} {self.name}:    ' \
+            message = f'Epoch {epoch:3d} {self.name:12}    ' \
                       f'Average Train {self.train[epoch]:.5f}    ' \
                       f'Average Test {self.test[epoch]:.5f}'
             logger.info(message)
@@ -156,6 +156,6 @@ class ModelCheckpoint(Callback):
             self.best_result = result
             self.best_model_dir = model_dir
 
-            text = f'The new best result: {result:.2f}'
+            text = f'New model checkpoint saved.'
             if self.verbose:
                 logger.info(text)
