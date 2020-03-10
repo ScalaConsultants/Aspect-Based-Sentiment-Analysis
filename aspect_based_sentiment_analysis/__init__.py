@@ -20,16 +20,16 @@ from .callbacks import History
 from .callbacks import LossHistory
 from .callbacks import ModelCheckpoint
 
-from .preprocessing.language_model_input import DocumentStore
-from .preprocessing.language_model_input import LanguageModelExample
-from .preprocessing.language_model_input import LanguageModelTrainBatch
-from .preprocessing.language_model_input import LanguageModelDataset
-from .preprocessing.extractor_model_input import ExtractorExample
-from .preprocessing.extractor_model_input import ExtractorTrainBatch
-from .preprocessing.extractor_model_input import ExtractorDataset
-from .preprocessing.classifier_model_input import ClassifierExample
-from .preprocessing.classifier_model_input import ClassifierTrainBatch
-from .preprocessing.classifier_model_input import ClassifierDataset
+from .preprocessing.language_model import DocumentStore
+from .preprocessing.language_model import LanguageModelExample
+from .preprocessing.language_model import LanguageModelTrainBatch
+from .preprocessing.language_model import LanguageModelDataset
+from .preprocessing.extractor_model import ExtractorExample
+from .preprocessing.extractor_model import ExtractorTrainBatch
+from .preprocessing.extractor_model import ExtractorDataset
+from .preprocessing.classifier import ClassifierExample
+from .preprocessing.classifier import ClassifierTrainBatch
+from .preprocessing.classifier import ClassifierDataset
 
 from .models import BertABSCConfig
 from .models import BertABSClassifier
@@ -42,12 +42,8 @@ from .loads import load_classifier_examples
 from .loads import load_extractor_examples
 from .loads import load_multimodal_examples
 
-from .losses import classifier_loss
-from .losses import extractor_loss
-from .losses import language_model_loss
-
 from .plots import plot_patterns
 
-from .routines import post_train
-from .routines import tune_classifier
-from .routines import tune_extractor
+from .training.classifier import train_classifier
+from .training.extractor import train_extractor
+from .training.lanugage_model import train_language_model
