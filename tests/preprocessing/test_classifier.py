@@ -6,8 +6,8 @@ import numpy as np
 from aspect_based_sentiment_analysis.data_types import Aspect
 from aspect_based_sentiment_analysis.data_types import Label
 from aspect_based_sentiment_analysis.data_types import ClassifierExample
-from aspect_based_sentiment_analysis.preprocessing \
-    .classifier_model_input import ClassifierDataset
+from aspect_based_sentiment_analysis.preprocessing\
+    .classifier import ClassifierDataset
 np.random.seed(2)
 
 

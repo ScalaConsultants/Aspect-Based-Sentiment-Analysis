@@ -5,7 +5,7 @@ import numpy as np
 
 from aspect_based_sentiment_analysis.data_types import LanguageModelExample
 from aspect_based_sentiment_analysis.preprocessing \
-    .language_model_input import LanguageModelDataset
+    .language_model import LanguageModelDataset
 np.random.seed(2)
 
 

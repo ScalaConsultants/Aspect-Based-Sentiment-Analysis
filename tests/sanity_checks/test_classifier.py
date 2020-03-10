@@ -46,7 +46,7 @@ def test_sanity_classifier():
     # Please take a look at the `tune_classifier` function for more details.
     optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-8)
     logger, history = absa.Logger(), absa.History()
-    absa.tune_classifier(model, optimizer, dataset, epochs=10, callbacks=[logger, history])
+    absa.train_classifier(model, optimizer, dataset, epochs=10, callbacks=[logger, history])
 
     # Our model should easily overfit, even in 10 iterations.
     assert np.isclose(history.train[1], 1, atol=0.1)
@@ -68,7 +68,8 @@ def test_sanity_classifier():
                                           attention_mask=batch.attention_mask,
                                           token_type_ids=batch.token_type_ids)
     logits, *details = model_outputs
-    loss_value = absa.losses.classifier_loss(batch.target_labels, logits)
+    loss_value = tf.nn.softmax_cross_entropy_with_logits(batch.target_labels, logits,
+                                                         axis=-1, name='Loss')
     train_loss = loss_value.numpy().mean()
     assert train_loss < 1e-2
 
