@@ -12,15 +12,18 @@ from .data_types import ExtractorExample
 from .data_types import MultimodalExample
 from .models import BertABSClassifier
 from .pipelines import BertPipeline
+
 logger = logging.getLogger('absa.pipeline')
+ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
+DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 
 
 def pipeline(name: str):
-    """ Model weights are stored in the HaggingFace AWS S3. """
+    """ Files are stored on the HaggingFace AWS S3. """
     try:
         model = BertABSClassifier.from_pretrained(name)
         tokenizer = transformers.BertTokenizer.from_pretrained(name)
-        return BertPipeline(tokenizer, model)
+        return BertPipeline(model, tokenizer)
 
     except EnvironmentError as error:
         text = 'Model or Tokenizer not found. Please check a documentation.'
@@ -42,15 +45,16 @@ def load_classifier_examples(
         test: bool = False
 ) -> List[ClassifierExample]:
     """ Download a dataset from the bucket if it is needed. """
+    split = 'train' if not test else 'test'
+    name = f'classifier-{dataset}-{domain}-{split}.bin'
+    local_path = os.path.join(DOWNLOADS_DIR, name)
+
     try:
-        split = 'train' if not test else 'test'
-        name = f'classifier-{dataset}-{domain}-{split}.bin'
         local_path = utils.file_from_bucket(name)
         examples = utils.load(local_path)
         return examples
 
     except NotFound as error:
-        local_path = f'{os.path.dirname(__file__)}/downloads/{name}'
         if os.path.isfile(local_path):
             os.remove(local_path)
         text = 'Dataset not found. Please check a documentation.'
