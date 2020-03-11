@@ -109,13 +109,14 @@ if __name__ == '__main__':
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     os.chdir(ROOT_DIR)
     PRETRAINED_MODEL_NAMES = {
-        'restaurants': 'absa/bert-rest-0.1',
-        'laptops': 'absa/bert-lapt-0.1'
+        'restaurant': 'absa/bert-rest-0.1',
+        'laptop': 'absa/bert-lapt-0.1'
     }
     restaurant_study = optuna.create_study(
         study_name='classifier-restaurant',
         direction='maximize',
-        storage='sqlite:///classifier_restaurant.db'
+        storage='sqlite:///classifier_restaurant.db',
+        load_if_exists=True
     )
-    restaurant_objective = partial(objective, domain='restaurants')
+    restaurant_objective = partial(objective, domain='restaurant')
     restaurant_study.optimize(restaurant_objective, n_trials=100)
