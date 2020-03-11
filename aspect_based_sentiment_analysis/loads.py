@@ -38,7 +38,7 @@ def load_extractor_examples(fname: str) -> Iterable[ExtractorExample]:
 
 def load_classifier_examples(
         dataset: str = 'semeval',
-        domain: str = 'laptops',
+        domain: str = 'laptop',
         test: bool = False
 ) -> List[ClassifierExample]:
     """ Download a dataset from the bucket if it is needed. """
