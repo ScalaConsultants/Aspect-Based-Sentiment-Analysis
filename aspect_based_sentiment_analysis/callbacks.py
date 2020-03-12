@@ -167,8 +167,8 @@ class ModelCheckpoint(Callback):
 @dataclass
 class EarlyStopping(Callback):
     loss_history: LossHistory
-    min_delta: float = 0
     patience: int = 0
+    min_delta: float = 0
     verbose: bool = True
     best_result: float = np.inf
     current_patience: int = 0
@@ -178,6 +178,7 @@ class EarlyStopping(Callback):
         result = self.loss_history.test[epoch]
         is_better = (self.best_result - result) > self.min_delta
         if is_better:
+            self.best_result = result
             self.current_patience = 0
             return
         self.current_patience += 1
