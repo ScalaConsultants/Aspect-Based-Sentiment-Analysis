@@ -1,4 +1,5 @@
 import os
+import logging
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable
@@ -52,9 +53,13 @@ def experiment(
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
-    experiment_dir = os.path.join(ROOT_DIR, f'train-classifier-{ID}')
+    experiment_dir = os.path.join(ROOT_DIR, 'results',
+                                  f'classifier-{domain}-{ID:03}')
     os.makedirs(experiment_dir, exist_ok=False)
     checkpoints_dir = os.path.join(experiment_dir, 'checkpoints')
+    # Remove handlers from previous experiments.
+    logging.getLogger('absa').handlers = []
+
     log_path = os.path.join(experiment_dir, 'experiment.log')
     callbacks_path = os.path.join(experiment_dir, 'callbacks.bin')
 
@@ -78,11 +83,13 @@ def experiment(
     logger = absa.Logger(file_path=log_path)
     loss_history = absa.LossHistory()
     acc_history = CategoricalAccuracyHistory()
+    early_stopping = absa.EarlyStopping(loss_history, patience=3,
+                                        min_delta=0.001)
     checkpoints = absa.ModelCheckpoint(model, loss_history, checkpoints_dir)
+    callbacks = [logger, loss_history, acc_history, checkpoints, early_stopping]
 
-    absa.train_classifier(model, optimizer, dataset, epochs, test_dataset,
-                          callbacks=[logger, loss_history, acc_history, checkpoints],
-                          strategy=strategy)
+    absa.train_classifier(model, optimizer, dataset, epochs,
+                          test_dataset, callbacks, strategy)
 
     best_model = absa.BertABSClassifier.from_pretrained(checkpoints.best_model_dir)
     best_model.save_pretrained(experiment_dir)
@@ -97,7 +104,7 @@ def objective(trial, domain: str):
         'ID': trial.trial_id,
         'domain': domain,
         'base_model_name': PRETRAINED_MODEL_NAMES[domain],
-        'epochs': 10,
+        'epochs': 20,
         'batch_size': trial.suggest_categorical('batch_size', [8, 16, 24, 32]),
         'learning_rate': trial.suggest_loguniform('learning_rate', 1e-6, 1e-4),
         'beta_1': trial.suggest_uniform('beta_1', 0.5, 1)
@@ -112,11 +119,12 @@ if __name__ == '__main__':
         'restaurant': 'absa/bert-rest-0.1',
         'laptop': 'absa/bert-lapt-0.1'
     }
-    restaurant_study = optuna.create_study(
-        study_name='classifier-restaurant',
-        direction='maximize',
-        storage='sqlite:///classifier_restaurant.db',
-        load_if_exists=True
-    )
-    restaurant_objective = partial(objective, domain='restaurant')
-    restaurant_study.optimize(restaurant_objective, n_trials=100)
+    for domain in ['restaurant', 'laptop']:
+        study = optuna.create_study(
+            study_name=f'classifier-{domain}',
+            direction='maximize',
+            storage='sqlite:///classifier.db',
+            load_if_exists=True
+        )
+        domain_objective = partial(objective, domain=domain)
+        study.optimize(domain_objective, n_trials=100)
