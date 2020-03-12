@@ -19,6 +19,7 @@ from .callbacks import Logger
 from .callbacks import History
 from .callbacks import LossHistory
 from .callbacks import ModelCheckpoint
+from .callbacks import EarlyStopping
 
 from .preprocessing.language_model import DocumentStore
 from .preprocessing.language_model import LanguageModelExample

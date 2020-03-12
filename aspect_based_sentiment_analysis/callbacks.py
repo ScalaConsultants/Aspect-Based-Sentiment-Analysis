@@ -12,6 +12,8 @@ import numpy as np
 import tensorflow as tf
 import transformers
 
+from .routines import StopTraining
+
 logger = logging.getLogger('absa.callbacks')
 
 
@@ -160,3 +162,24 @@ class ModelCheckpoint(Callback):
             text = f'New model checkpoint saved.'
             if self.verbose:
                 logger.info(text)
+
+
+@dataclass
+class EarlyStopping(Callback):
+    loss_history: LossHistory
+    min_delta: float = 0
+    patience: int = 0
+    verbose: bool = True
+    best_result: float = np.inf
+    current_patience: int = 0
+
+    def on_epoch_end(self, epoch: int):
+        """ """
+        result = self.loss_history.test[epoch]
+        is_better = (self.best_result - result) > self.min_delta
+        if is_better:
+            self.current_patience = 0
+            return
+        self.current_patience += 1
+        if self.current_patience > self.patience:
+            raise StopTraining
