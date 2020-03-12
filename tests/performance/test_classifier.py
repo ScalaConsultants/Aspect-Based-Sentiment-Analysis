@@ -9,6 +9,14 @@ def test_semeval_classification_restaurants():
                                             test=True)
     nlp = absa.pipeline('absa/classifier-rest-0.1')
 
+    # Quick entry validation
+    text = ("We are great fans of Slack, but we wish the subscriptions "
+            "were more accessible to small startups.")
+    prediction, = nlp(text, aspect_names=['Slack'])
+    assert prediction.label == absa.Label.positive
+    prediction, = nlp(text, aspect_names=['price'])
+    assert prediction.label == absa.Label.negative
+
     results = []
     for example in dataset:
         prediction, = nlp.predict(
@@ -21,3 +29,4 @@ def test_semeval_classification_restaurants():
                   for example, prediction in results]
     accuracy = sum(is_correct) / len(is_correct)
     assert round(accuracy, 3) >= 0.86
+
