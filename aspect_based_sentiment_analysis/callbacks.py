@@ -12,7 +12,7 @@ import numpy as np
 import tensorflow as tf
 import transformers
 
-from .routines import StopTraining
+from .errors import StopTraining
 
 logger = logging.getLogger('absa.callbacks')
 

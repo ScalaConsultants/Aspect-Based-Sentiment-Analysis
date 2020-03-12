@@ -10,12 +10,9 @@ import tensorflow as tf
 from .datasets import TrainBatch
 from .callbacks import Callback
 from .callbacks import CallbackList
+from .errors import StopTraining
 
 logger = logging.getLogger('absa.routines')
-
-
-class StopTraining(Exception):
-    """ Exception raised when the training is forced to stop. """
 
 
 def train(strategy: tf.distribute.Strategy,
