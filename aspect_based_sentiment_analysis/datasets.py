@@ -10,7 +10,7 @@ import numpy as np
 from .data_types import Example
 
 
-@dataclass
+@dataclass(frozen=True)
 class TrainBatch:
     """ """
 
