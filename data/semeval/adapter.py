@@ -1,7 +1,6 @@
 import xml.etree.ElementTree as ET
 from typing import Iterable
-from aspect_based_sentiment_analysis import Aspect
-from aspect_based_sentiment_analysis import Label
+from aspect_based_sentiment_analysis import Sentiment
 from aspect_based_sentiment_analysis import ClassifierExample
 
 
@@ -36,17 +35,15 @@ def validate_sentences(sentences, stats):
 def generate_classifier_examples(sentence) -> Iterable[ClassifierExample]:
     """ Each labeled sentence can have several aspect terms so we can
     generate several examples. Sentences should be validated before. """
-    polarity_to_label = {
-        'neutral': Label.neutral,
-        'negative': Label.negative,
-        'positive': Label.positive,
+    polarity_to_sentiment = {
+        'neutral': Sentiment.neutral,
+        'negative': Sentiment.negative,
+        'positive': Sentiment.positive,
     }
     text = sentence.find('text').text.lower()
     aspects = sentence.find('aspectTerms')
     for aspect in aspects:
         polarity = aspect.attrib['polarity']
-        term = aspect.attrib['term'].lower()
-
-        label = polarity_to_label[polarity]
-        aspect = Aspect(term, label)
-        yield ClassifierExample(text, aspect)
+        aspect = aspect.attrib['term'].lower()
+        sentiment = polarity_to_sentiment[polarity]
+        yield ClassifierExample(text, aspect, sentiment)

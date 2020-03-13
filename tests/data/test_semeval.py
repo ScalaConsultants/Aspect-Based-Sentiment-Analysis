@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from data.semeval import adapter
 import aspect_based_sentiment_analysis as absa
-from aspect_based_sentiment_analysis import Label
+from aspect_based_sentiment_analysis import Sentiment
 
 # More details can be found here:
 # https://github.com/davidsbatista/Aspect-Based-Sentiment-Analysis/tree/master/datasets/ABSA-SemEval2014
@@ -74,10 +74,10 @@ def test_generate_classifier_examples():
     sentence, = adapter.read_sentences(file)
     examples = adapter.generate_classifier_examples(sentence)
     example_1, example_2 = examples
-    assert example_1.aspect.name == 'cord'
-    assert example_1.aspect.label == Label.neutral
-    assert example_2.aspect.name == 'battery life'
-    assert example_2.aspect.label == Label.positive
+    assert example_1.aspect == 'cord'
+    assert example_1.sentiment == Sentiment.neutral
+    assert example_2.aspect == 'battery life'
+    assert example_2.sentiment == Sentiment.positive
     assert example_1.text == example_2.text == text.lower()
 
 
@@ -103,8 +103,8 @@ def test_restaurant_dataset():
     assert len(examples) == 3602
     # Check distribution of polarities
     count = lambda label: sum(True for example in examples
-                              if example.aspect.label == label)
-    ratios = np.array([count(label) for label in Label]) / len(examples)
+                              if example.sentiment == label)
+    ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.18, 0.22, 0.6]
     absa.utils.save(examples, 'classifier-semeval-restaurant-train.bin')
@@ -132,8 +132,8 @@ def test_laptop_dataset():
     assert len(examples) == 2313
     # Check distribution of polarities
     count = lambda label: sum(True for example in examples
-                              if example.aspect.label == label)
-    ratios = np.array([count(label) for label in Label]) / len(examples)
+                              if example.sentiment == label)
+    ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.2, 0.37, 0.43]
     absa.utils.save(examples, 'classifier-semeval-laptop-train.bin')
@@ -161,8 +161,8 @@ def test_restaurant_test_dataset():
     assert len(examples) == 1120
     # Check distribution of polarities
     count = lambda label: sum(True for example in examples
-                              if example.aspect.label == label)
-    ratios = np.array([count(label) for label in Label]) / len(examples)
+                              if example.sentiment == label)
+    ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.18, 0.18, 0.65]
     absa.utils.save(examples, 'classifier-semeval-restaurant-test.bin')
@@ -190,8 +190,8 @@ def test_laptop_test_dataset():
     assert len(examples) == 638
     # Check distribution of polarities
     count = lambda label: sum(True for example in examples
-                              if example.aspect.label == label)
-    ratios = np.array([count(label) for label in Label]) / len(examples)
+                              if example.sentiment == label)
+    ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.26, 0.2, 0.53]
     absa.utils.save(examples, 'classifier-semeval-laptop-test.bin')
