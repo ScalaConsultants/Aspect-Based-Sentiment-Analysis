@@ -1,18 +1,17 @@
 from abc import ABC
 from abc import abstractmethod
-from dataclasses import dataclass
 from typing import Iterable
 from typing import Iterator
 from typing import List
 
 import numpy as np
 
-from .data_types import Example
+from .data_types import TrainExample
 
 
-@dataclass(frozen=True)
-class TrainBatch:
-    """ """
+class TrainBatch(ABC):
+    """ The Train Batch contains all information needed
+    to perform a single optimization step. """
 
 
 class Dataset(ABC):
@@ -23,8 +22,10 @@ class Dataset(ABC):
         therefore exclusively an iterable object is required. """
 
     @abstractmethod
-    def preprocess_batch(self, batch_examples: List[Example]) -> TrainBatch:
-        """ """
+    def preprocess_batch(self,
+                         batch_examples: List[TrainExample]) -> TrainBatch:
+        """ Transform human understandable examples into model
+        understandable tensors. """
 
 
 class InMemoryDataset(Dataset):
@@ -44,16 +45,12 @@ class InMemoryDataset(Dataset):
                 yield batch
                 batch_examples = []
 
-    @abstractmethod
-    def preprocess_batch(self, batch_examples: List[Example]) -> TrainBatch:
-        """ """
-
 
 class StreamDataset(Dataset):
     batch_size: int
 
     def __iter__(self) -> Iterator[TrainBatch]:
-        """ """
+        """ Produce train batches on the fly. """
         examples = self.examples_generator()
         batch_examples = []
         for example in examples:
@@ -64,5 +61,5 @@ class StreamDataset(Dataset):
                 batch_examples = []
 
     @abstractmethod
-    def examples_generator(self) -> Iterable[Example]:
-        """ """
+    def examples_generator(self) -> Iterable[TrainExample]:
+        """ Stream examples from a data source. """
