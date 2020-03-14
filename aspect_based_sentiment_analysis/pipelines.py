@@ -1,23 +1,28 @@
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Tuple
 from typing import List
 
+import numpy as np
 import tensorflow as tf
 import transformers
 
-from .data_types import AspectPrediction
-from .data_types import Label
+from . import utils
+from .data_types import Prediction
+from .data_types import Sentiment
+from .data_types import ClassifierExample
 from .models import BertABSClassifier
 
 
 class Pipeline(ABC):
-    """ """
+    """ The pipeline provides the affordable interface for making
+    predictions using the fine-tuned model along with the tokenizer. """
 
     @abstractmethod
-    def __call__(self, text: str, aspects: List[str] = None) -> Iterable[AspectPrediction]:
-        """ """
+    def __call__(self, text: str, aspects: List[str]) -> List[Prediction]:
+        """ Perform Aspect Based Sentiment Classification. You can check
+        several aspects at once. """
 
 
 @dataclass(frozen=True)
@@ -25,48 +30,47 @@ class BertPipeline(Pipeline):
     model: BertABSClassifier
     tokenizer: transformers.BertTokenizer
 
-    def __call__(self, text: str, aspect_names: List[str] = None) -> List[AspectPrediction]:
-        return self.predict(text, aspect_names) if aspect_names \
-               else self.extract_and_predict(text)
+    def __call__(self, text: str, aspects: List[str]) -> List[Prediction]:
+        pairs = [(text, aspect) for aspect in aspects]
+        return self.predict(pairs)
 
-    def extract_and_predict(self, text: str) -> List[AspectPrediction]:
-        """ """
+    def predict(self, pairs: List[Tuple[str, str]]) -> List[Prediction]:
+        """ Each pair represents (text, aspect). """
         encoded = self.tokenizer.batch_encode_plus(
-            [text],
+            batch_text_or_text_pairs=pairs,
             add_special_tokens=True,
             pad_to_max_length='right',
             return_tensors='tf'
         )
-        outputs = self.model.call(
+        logits, *details = self.model.call(
             token_ids=encoded['input_ids'],
             attention_mask=encoded['attention_mask'],
             token_type_ids=encoded['token_type_ids']
         )
-        extractor_logits, extractor_details, \
-        classifier_logits, classifier_details = outputs
-        return self.build_aspect_predictions(aspect_names, classifier_logits, text)
+        dist = tf.nn.softmax(logits, axis=1).numpy()
+        predictions = [self.build_prediction(*args) for args in
+                       zip(pairs, dist)]
+        return predictions
 
-    def predict(self, text: str, aspect_names: List[str]) -> List[AspectPrediction]:
-        """ """
-        text_pairs = [(text, aspect_name) for aspect_name in aspect_names]
-        encoded = self.tokenizer.batch_encode_plus(
-            text_pairs,
-            add_special_tokens=True,
-            pad_to_max_length='right',
-            return_tensors='tf'
-        )
-        classifier_logits, *details = self.model.call_classifier(
-            token_ids=encoded['input_ids'],
-            attention_mask=encoded['attention_mask'],
-            token_type_ids=encoded['token_type_ids']
-        )
-        return self.build_aspect_predictions(aspect_names, classifier_logits, text)
+    def evaluate(self,
+                 examples: List[ClassifierExample],
+                 metric: tf.metrics.Metric,
+                 batch_size: int = 32) -> np.ndarray:
+        batches = utils.batches(examples, batch_size)
+        for batch in batches:
+            pairs = [(e.text, e.aspect) for e in batch]
+            predictions = self.predict(pairs)
+            y_pred = [p.sentiment.value for p in predictions]
+            y_true = [e.sentiment.value for e in batch]
+            metric.update_state(y_true, y_pred)
+        result = metric.result().numpy()
+        return result
 
     @staticmethod
-    def build_aspect_predictions(aspect_names, logits, text):
-        """ """
-        scores = tf.nn.softmax(logits, axis=1).numpy()
-        predictions = scores.argmax(axis=1)
-        labels = [Label(int(prediction)) for prediction in predictions]
-        return [AspectPrediction(name, label, text, score)
-                for name, label, score in zip(aspect_names, labels, scores)]
+    def build_prediction(pair: Tuple[str, str],
+                         scores: np.ndarray) -> Prediction:
+        text, aspect = pair
+        sentiment_id = scores.argmax().astype(int)
+        sentiment = Sentiment(sentiment_id)
+        prediction = Prediction(aspect, sentiment, text, scores)
+        return prediction
