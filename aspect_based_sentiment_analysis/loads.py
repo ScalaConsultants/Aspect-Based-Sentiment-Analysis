@@ -8,8 +8,6 @@ from google.cloud.exceptions import NotFound
 
 from . import utils
 from .data_types import ClassifierExample
-from .data_types import ExtractorExample
-from .data_types import MultimodalExample
 from .models import BertABSClassifier
 from .pipelines import BertPipeline
 
@@ -33,10 +31,7 @@ def pipeline(name: str):
 
 def load_docs(fname: str) -> Iterable[List[str]]:
     """  """
-
-
-def load_extractor_examples(fname: str) -> Iterable[ExtractorExample]:
-    """  """
+    raise NotImplemented
 
 
 def load_classifier_examples(
@@ -60,8 +55,3 @@ def load_classifier_examples(
         text = 'Dataset not found. Please check a documentation.'
         logger.error(text)
         raise error
-
-
-def load_multimodal_examples(fname: str) -> Iterable[MultimodalExample]:
-    """  """
-
