@@ -2,6 +2,8 @@ import os
 import pickle
 import logging
 from typing import Any
+from typing import Iterable
+from typing import List
 from google.cloud import storage
 
 logger = logging.getLogger('absa.utils')
@@ -17,6 +19,21 @@ def save(data: Any, file_path: str):
     """ Save arbitrary python objects in the pickled file. """
     with open(file_path, mode='wb') as file:
         pickle.dump(data, file)
+
+
+def batches(examples: Iterable[Any], batch_size: int,
+            reminder: bool = True) -> Iterable[List[Any]]:
+    """ Yield an example batch from the example iterable. """
+    batch = []
+    for example in examples:
+        batch.append(example)
+        if len(batch) < batch_size:
+            continue
+        yield batch
+        batch = []
+    # Return the last incomplete batch if it is needed
+    if batch and reminder:
+        yield batch
 
 
 def download_from_bucket(bucket_name: str, remote_path: str, local_path: str):
