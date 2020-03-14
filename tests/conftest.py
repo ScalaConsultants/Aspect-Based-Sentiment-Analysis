@@ -2,21 +2,21 @@ import pytest
 
 
 def pytest_addoption(parser):
-    parser.addoption("--run-sanity-checks", action="store_true",
-                     default=False, help="Run sanity checks")
+    parser.addoption("--run-slow", action="store_true",
+                     default=False, help="Run slow tests")
 
 
 def pytest_configure(config):
-    dsc = "sanity_check: mark test as sanity_check, which can be slow to run"
+    dsc = "slow: mark test, which can be slow to run"
     config.addinivalue_line("markers", dsc)
 
 
 def pytest_collection_modifyitems(config, items):
-    if config.getoption("--run-sanity-checks"):
-        # --run-sanity-checks given in cli: do not skip sanity checks
+    if config.getoption("--run-slow"):
+        # --run-run-slow given in cli: do not skip slow checks
         return
-    reason_desc = "need --run-sanity-checks option to run"
+    reason_desc = "need --run-slow option to run"
     skip_sanity_check = pytest.mark.skip(reason=reason_desc)
     for item in items:
-        if "sanity_check" in item.keywords:
+        if "slow" in item.keywords:
             item.add_marker(skip_sanity_check)
