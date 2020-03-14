@@ -52,7 +52,7 @@ def train_classifier(
 
         def test_step(*batch: List[tf.Tensor]):
             token_ids, attention_mask, token_type_ids, target_labels = batch
-            model_outputs = model.call_classifier(
+            model_outputs = model.call(
                 token_ids,
                 attention_mask=attention_mask,
                 token_type_ids=token_type_ids
