@@ -1,55 +1,39 @@
 from abc import ABC
 from enum import IntEnum
 from dataclasses import dataclass
-from typing import List
+
+import numpy as np
 
 
-class Label(IntEnum):
+class Sentiment(IntEnum):
     neutral = 0
     negative = 1
     positive = 2
 
 
 @dataclass(frozen=True)
-class Aspect:
-    name: str
-    label: Label
-
-
-@dataclass(frozen=True)
-class AspectPrediction(Aspect):
+class Prediction:
+    aspect: str
+    sentiment: Sentiment
     text: str
-    scores: float = None
+    scores: np.ndarray
     confidence: float = None
 
-    def __str__(self):
-        return f'Aspect(name={self.name}, label={self.label})'
 
-
-class Example(ABC):
-    """ """
+class TrainExample(ABC):
+    """ The Train Example represents a single
+     observation used in the training. """
 
 
 @dataclass(frozen=True)
-class LanguageModelExample(Example):
+class LanguageModelExample(TrainExample):
     text_a: str
     text_b: str
     is_next: int
 
 
 @dataclass(frozen=True)
-class ExtractorExample(Example):
+class ClassifierExample(TrainExample):
     text: str
-    aspect_names: List[str]
-
-
-@dataclass(frozen=True)
-class ClassifierExample(Example):
-    text: str
-    aspect: Aspect
-
-
-@dataclass(frozen=True)
-class MultimodalExample(Example):
-    text: str
-    aspects: List[Aspect]
+    aspect: str
+    sentiment: Sentiment
