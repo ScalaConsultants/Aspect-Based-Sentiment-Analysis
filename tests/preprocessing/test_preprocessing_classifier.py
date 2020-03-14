@@ -3,8 +3,7 @@ import pytest
 import transformers
 import numpy as np
 
-from aspect_based_sentiment_analysis.data_types import Aspect
-from aspect_based_sentiment_analysis.data_types import Label
+from aspect_based_sentiment_analysis.data_types import Sentiment
 from aspect_based_sentiment_analysis.data_types import ClassifierExample
 from aspect_based_sentiment_analysis.preprocessing\
     .classifier import ClassifierDataset
@@ -19,11 +18,13 @@ def tokenizer() -> transformers.PreTrainedTokenizer:
 def test_preprocess_batch(tokenizer):
     example_1 = ClassifierExample(
         text='The breakfast was delicious, really great.',
-        aspect=Aspect(name='breakfast', label=Label.positive)
+        aspect='breakfast',
+        sentiment=Sentiment.positive
     )
     example_2 = ClassifierExample(
         text='The hotel is expensive.',
-        aspect=Aspect(name='hotel', label=Label.negative)
+        aspect='hotel',
+        sentiment=Sentiment.negative
     )
     dataset = ClassifierDataset(mock.Mock(), mock.Mock(), tokenizer)
     batch = dataset.preprocess_batch([example_1, example_2])

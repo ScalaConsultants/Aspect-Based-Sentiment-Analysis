@@ -8,7 +8,7 @@ np.random.seed(1)
 tf.random.set_seed(1)
 
 
-@pytest.mark.sanity_check
+@pytest.mark.slow
 def test_sanity_classifier():
     # This sanity test verifies and presents how the classifier works. To
     # build our model, we have to define a config, which contains all
@@ -18,9 +18,13 @@ def test_sanity_classifier():
     # your own parameters (maybe you would be interested to change the number
     # of polarities to classify, or properties of the BERT).
     base_model_name = 'bert-base-uncased'
-    config = absa.BertABSCConfig.from_pretrained(base_model_name)
-    model = absa.BertABSClassifier.from_pretrained(base_model_name, config=config)
-    tokenizer = transformers.BertTokenizer.from_pretrained(base_model_name)
+    strategy = tf.distribute.OneDeviceStrategy('CPU')
+    with strategy.scope():
+        config = absa.BertABSCConfig.from_pretrained(base_model_name)
+        model = absa.BertABSClassifier.from_pretrained(base_model_name,
+                                                       config=config)
+        tokenizer = transformers.BertTokenizer.from_pretrained(base_model_name)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-8)
 
     # The first step to train the model is to define a dataset. The dataset
     # can be understood as a non-differential part of the pipeline for the
@@ -30,7 +34,8 @@ def test_sanity_classifier():
     # classifier examples to classifier train batches.
     example = absa.ClassifierExample(
         text='The breakfast was delicious, really great.',
-        aspect=absa.Aspect(name='breakfast', label=absa.Label.positive)
+        aspect='breakfast',
+        sentiment=absa.Sentiment.positive
     )
     dataset = absa.ClassifierDataset(examples=[example, example],
                                      tokenizer=tokenizer,
@@ -44,13 +49,13 @@ def test_sanity_classifier():
     # dataset, perform train/test optimization steps, and collect results
     # using callbacks (which have a similar interface as tf.keras.Callback).
     # Please take a look at the `tune_classifier` function for more details.
-    optimizer = tf.keras.optimizers.Adam(learning_rate=3e-5, epsilon=1e-8)
-    logger, history = absa.Logger(), absa.History()
-    absa.train_classifier(model, optimizer, dataset, epochs=10, callbacks=[logger, history])
+    logger, loss = absa.Logger(), absa.LossHistory()
+    absa.train_classifier(model, optimizer, dataset, epochs=10,
+                          callbacks=[logger, loss], strategy=strategy)
 
     # Our model should easily overfit, even in 10 iterations.
-    assert np.isclose(history.train[1], 1, atol=0.1)
-    assert history.train[10] < 1e-2
+    assert 1 < loss.train[1] < 2
+    assert loss.train[10] < 2e-2
 
     # At the end, we would like to save the model. Our implementation
     # gentle extend the *transformers* lib capabilities, in consequences,
@@ -64,23 +69,23 @@ def test_sanity_classifier():
     config = absa.BertABSCConfig.from_pretrained('.')
     model = absa.BertABSClassifier.from_pretrained('.', config=config)
     batch = next(iter(dataset))
-    model_outputs = model.call_classifier(batch.token_ids,
-                                          attention_mask=batch.attention_mask,
-                                          token_type_ids=batch.token_type_ids)
+    model_outputs = model.call(batch.token_ids,
+                               attention_mask=batch.attention_mask,
+                               token_type_ids=batch.token_type_ids)
     logits, *details = model_outputs
     loss_value = tf.nn.softmax_cross_entropy_with_logits(batch.target_labels, logits,
                                                          axis=-1, name='Loss')
-    train_loss = loss_value.numpy().mean()
-    assert train_loss < 1e-2
+    loss = loss_value.numpy().mean()
+    assert loss < 2e-2
 
     # The training procedure is roughly verified. Now, using our tuned model,
     # we can build the `BertPipeline`. The pipeline is the high level
     # interface to perform predictions. The model should be highly confident
     # that this is the positive example (verify the softmax scores).
     nlp = absa.BertPipeline(model, tokenizer)
-    aspect_prediction, = nlp.predict(example.text, aspect_names=['breakfast'])
-    assert aspect_prediction.label == absa.Label.positive
-    assert np.allclose(aspect_prediction.scores, [0.0, 0.0, 0.99], atol=0.01)
+    breakfast, = nlp(example.text, aspects=['breakfast'])
+    assert breakfast.sentiment == absa.Sentiment.positive
+    assert np.allclose(breakfast.scores, [0.0, 0.0, 0.99], atol=0.01)
 
     # That's all, clean up the configuration, and the temporary saved model.
     os.remove('config.json')
