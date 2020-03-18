@@ -16,10 +16,10 @@ ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 
 
-def pipeline(name: str):
+def pipeline(name: str, **kwargs):
     """ Files are stored on the HaggingFace AWS S3. """
     try:
-        model = BertABSClassifier.from_pretrained(name)
+        model = BertABSClassifier.from_pretrained(name, **kwargs)
         tokenizer = transformers.BertTokenizer.from_pretrained(name)
         return BertPipeline(model, tokenizer)
 
