@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 import numpy as np
 import tensorflow as tf
@@ -37,39 +39,7 @@ def template() -> Template:
     return template
 
 
-def test_get_rule():
-    tokens = ['[CLS]', 'ab', 'bc', '[SEP]', 'cd', 'de', '[SEP]']
-    aspect_tokens = ['cd', 'de']
-    rule = get_rule('ALL', aspect_tokens)
-    mask = [rule(t) for t in tokens]
-    assert all(mask)
-    rule = get_rule('NON-SPECIAL', aspect_tokens)
-    mask = [rule(t) for t in tokens]
-    assert mask == [False, True, True, False, False, False, False]
-    rule = get_rule('CLS', aspect_tokens)
-    mask = [rule(t) for t in tokens]
-    assert mask[0] and not any(mask[1:])
-    rule = get_rule('SEP', aspect_tokens)
-    mask = [rule(t) for t in tokens]
-    assert mask == [False, False, False, True, False, False, True]
-    rule = get_rule('ASPECT', aspect_tokens)
-    mask = [rule(t) for t in tokens]
-    assert mask == [False, False, False, False, True, True, False]
-
-
-def test_calculate_activation_means(template: Template):
-    n = len(template.alignment)
-    logits = np.random.randint(0, 10, size=[12, 12, n, n]).astype(float)
-    α = tf.nn.softmax(logits, axis=-1).numpy()
-
-    pattern = ('SEP', 'CLS')
-    averages = calculate_activation_means(α, template, pattern)
-
-    layer, head = 5, 7  # Randomly selected layer and head.
-    assert averages[layer, head] == np.mean(α[layer, head, [31, 33], 0])
-
-
-def test_get_word_attentions(template: Template):
+def test_merge_input_attentions(template: Template):
     # Set up fake attentions
     n = len(template.sub_tokens)
     attentions = np.zeros([12, 12, 53, 53])
@@ -100,3 +70,37 @@ def test_get_word_attentions(template: Template):
     ij, k = [28, 29], 27  # We can choose different split-up word.
     attention_from = np.mean(attentions[layer, head, ij, 6])
     assert attention_from == α[layer, head, k, 6]
+
+
+@mock.patch('article.explain.get_mask')
+def test_calculate_activation_means(get_mask, template):
+    attentions = np.random.randint(0, 10, size=[12, 12, 6, 6])
+    pattern = ('a', 'b')
+    i = np.array([True, True, False, False, True, False])
+    j = np.array([False, True, True, False, False, False])
+    get_mask.side_effect = [i, j]
+
+    means = calculate_activation_means(attentions, template, pattern)
+    layer, head = 5, 7  # Randomly selected layer and head.
+    mean = attentions[layer, head, [0, 1, 4], :][..., [1, 2]].mean()
+    assert means[layer, head] == mean
+
+
+def test_get_rule():
+    tokens = ['[CLS]', 'ab', 'bc', '[SEP]', 'cd', 'de', '[SEP]']
+    aspect_tokens = ['cd', 'de']
+    rule = get_rule('ALL', aspect_tokens)
+    mask = [rule(t) for t in tokens]
+    assert all(mask)
+    rule = get_rule('NON-SPECIAL', aspect_tokens)
+    mask = [rule(t) for t in tokens]
+    assert mask == [False, True, True, False, False, False, False]
+    rule = get_rule('CLS', aspect_tokens)
+    mask = [rule(t) for t in tokens]
+    assert mask[0] and not any(mask[1:])
+    rule = get_rule('SEP', aspect_tokens)
+    mask = [rule(t) for t in tokens]
+    assert mask == [False, False, False, True, False, False, True]
+    rule = get_rule('ASPECT', aspect_tokens)
+    mask = [rule(t) for t in tokens]
+    assert mask == [False, False, False, False, True, True, False]

@@ -96,8 +96,8 @@ def make_template(tokenizer: transformers.BertTokenizer,
 
         alignment.append(indices)
 
-    template = Template(text, aspect, aspect_tokens, tokens, sub_tokens,
-                        alignment)
+    template = Template(text, aspect, aspect_tokens,
+                        tokens, sub_tokens, alignment)
     return template
 
 
@@ -134,7 +134,10 @@ def calculate_activation_means(α: np.ndarray,
     i = get_mask(tokens, attention_from, aspect_tokens)
     j = get_mask(tokens, attention_to, aspect_tokens)
 
-    means = np.mean(α[..., i, j], axis=-1)
+    # Unfortunately, we have to perform the slicing operation
+    # in two separate steps.
+    interested = α[..., i, :][..., j]
+    means = np.mean(interested, axis=(2, 3))
     return means
 
 
