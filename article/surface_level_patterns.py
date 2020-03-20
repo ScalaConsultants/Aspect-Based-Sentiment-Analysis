@@ -1,3 +1,4 @@
+import numpy as np
 from itertools import product
 from collections import defaultdict
 from tqdm import tqdm
@@ -13,12 +14,21 @@ generator = get_classifier_attentions(
 )
 options = ['ALL', 'NON-SPECIAL', 'CLS', 'SEP', 'ASPECT']
 patterns = list(product(options, options))  # Cartesian product
-results = defaultdict(list)
+means = defaultdict(list)
+d_means = defaultdict(list)
 
 for template, α, dα in tqdm(generator):
     for pattern in patterns:
-        means = calculate_activation_means(α, template, pattern)
-        results[pattern].append(means)
+        sample_means = calculate_activation_means(α, template, pattern)
+        means[pattern].append(sample_means)
 
-# Save computation results.
-absa.utils.save(results, 'results.bin')
+        sample_d_means = calculate_activation_means(dα, template, pattern)
+        d_means[pattern].append(sample_d_means)
+
+# Save computation detailed and averaged results.
+absa.utils.save([means, d_means], 'detailed-results.bin')
+average = lambda data: {key: np.mean(np.stack(value), axis=0)
+                        for key, value in data.items()}
+averaged_means = average(means)
+averaged_d_means = average(d_means)
+absa.utils.save([averaged_means, averaged_d_means], 'averaged-results.bin')
