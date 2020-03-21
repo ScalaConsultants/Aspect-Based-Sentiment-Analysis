@@ -26,7 +26,8 @@ class Template:
 
 def get_classifier_attentions(
         pipeline: str,
-        domain: str
+        domain: str,
+        limit: int = None
 ) -> Iterable[Tuple[Template, tf.Tensor, tf.Tensor]]:
     nlp = absa.pipeline(pipeline,
                         output_attentions=True,
@@ -34,6 +35,7 @@ def get_classifier_attentions(
     examples = absa.load_classifier_examples(dataset='semeval',
                                              domain=domain,
                                              test=False)
+    examples = examples[:limit]
 
     batches = absa.utils.batches(examples, batch_size=32)
     for batch in batches:
