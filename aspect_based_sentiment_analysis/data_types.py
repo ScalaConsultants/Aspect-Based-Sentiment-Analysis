@@ -1,8 +1,7 @@
 from abc import ABC
 from enum import IntEnum
 from dataclasses import dataclass
-
-import numpy as np
+from typing import List
 
 
 class Sentiment(IntEnum):
@@ -12,12 +11,21 @@ class Sentiment(IntEnum):
 
 
 @dataclass(frozen=True)
+class Pattern:
+    name: str
+    impact: float
+    confidence: float
+    tokens: List[str]
+    weights: List[float]
+
+
+@dataclass(frozen=True)
 class Prediction:
+    text: str
     aspect: str
     sentiment: Sentiment
-    text: str
-    scores: np.ndarray
-    confidence: float = None
+    scores: List[float]
+    patterns: List[Pattern]
 
 
 class TrainExample(ABC):

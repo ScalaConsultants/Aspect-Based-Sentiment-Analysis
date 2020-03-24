@@ -32,6 +32,7 @@ from .models import BertABSClassifier
 
 from .metrics import ConfusionMatrix
 
+from .pipelines import Pipeline
 from .pipelines import BertPipeline
 
 from .loads import pipeline
@@ -41,4 +42,5 @@ from .loads import load_classifier_examples
 from .plots import plot_patterns
 
 from .training.classifier import train_classifier
+from .training.classifier import classifier_loss
 from .training.lanugage_model import train_language_model

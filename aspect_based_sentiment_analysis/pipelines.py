@@ -3,6 +3,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Tuple
 from typing import List
+from typing import Optional
 
 import numpy as np
 import tensorflow as tf
@@ -32,9 +33,13 @@ class BertPipeline(Pipeline):
 
     def __call__(self, text: str, aspects: List[str]) -> List[Prediction]:
         pairs = [(text, aspect) for aspect in aspects]
-        return self.predict(pairs)
+        predictions, logits, *details = self.predict(pairs)
+        return predictions
 
-    def predict(self, pairs: List[Tuple[str, str]]) -> List[Prediction]:
+    def predict(
+            self,
+            pairs: List[Tuple[str, str]]
+    ) -> Tuple[List[Prediction], tf.Tensor, Optional[List[Tuple[tf.Tensor]]]]:
         """ Each pair represents (text, aspect). """
         encoded = self.tokenizer.batch_encode_plus(
             batch_text_or_text_pairs=pairs,
@@ -47,10 +52,10 @@ class BertPipeline(Pipeline):
             attention_mask=encoded['attention_mask'],
             token_type_ids=encoded['token_type_ids']
         )
-        dist = tf.nn.softmax(logits, axis=1).numpy()
-        predictions = [self.build_prediction(*args) for args in
-                       zip(pairs, dist)]
-        return predictions
+        batch_scores = tf.nn.softmax(logits, axis=1).numpy()
+        predictions = [self.build_prediction(pair, scores)
+                       for pair, scores in zip(pairs, batch_scores)]
+        return (predictions, logits, *details)
 
     def evaluate(self,
                  examples: List[ClassifierExample],
@@ -59,7 +64,7 @@ class BertPipeline(Pipeline):
         batches = utils.batches(examples, batch_size)
         for batch in batches:
             pairs = [(e.text, e.aspect) for e in batch]
-            predictions = self.predict(pairs)
+            predictions, logits, *details = self.predict(pairs)
             y_pred = [p.sentiment.value for p in predictions]
             y_true = [e.sentiment.value for e in batch]
             metric.update_state(y_true, y_pred)
@@ -71,6 +76,7 @@ class BertPipeline(Pipeline):
                          scores: np.ndarray) -> Prediction:
         text, aspect = pair
         sentiment_id = scores.argmax().astype(int)
+        scores = scores.tolist()
         sentiment = Sentiment(sentiment_id)
         prediction = Prediction(aspect, sentiment, text, scores)
         return prediction

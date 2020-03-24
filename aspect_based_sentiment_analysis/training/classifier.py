@@ -21,17 +21,6 @@ def train_classifier(
     """ This routines tune the classifier along with the language model. """
     with strategy.scope():
 
-        def classifier_loss(labels, logits) -> tf.Tensor:
-            """ The classifier aim is to predict the three classes: positive,
-            negative and neutral with respect to an aspect-target. In such case,
-            we use the cross entropy loss.
-
-            Note that we can also try to formulate this problem as a binary
-            classification, and use for example the Hinge Loss. In consequences,
-            we would reduce the number of parameters 3 times. """
-            return tf.nn.softmax_cross_entropy_with_logits(labels, logits,
-                                                           axis=-1, name='Loss')
-
         def train_step(*batch: List[tf.Tensor]):
             token_ids, attention_mask, token_type_ids, target_labels = batch
             with tf.GradientTape() as tape:
@@ -70,3 +59,15 @@ def train_classifier(
         epochs=epochs,
         callbacks=callbacks
     )
+
+
+def classifier_loss(labels, logits) -> tf.Tensor:
+    """ The classifier aim is to predict the three classes: positive,
+    negative and neutral with respect to an aspect-target. In such case,
+    we use the cross entropy loss.
+
+    Note that we can also try to formulate this problem as a binary
+    classification, and use for example the Hinge Loss. In consequences,
+    we would reduce the number of parameters 3 times. """
+    softmax = tf.nn.softmax_cross_entropy_with_logits
+    return softmax(labels, logits, axis=-1, name='Loss')
