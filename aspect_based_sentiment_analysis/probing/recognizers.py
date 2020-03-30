@@ -48,8 +48,8 @@ class AttentionPatternRecognizer(PatternRecognizer):
         `percentile_mask` mask weights which are under the weight
         magnitude percentile. Default 80% of lowest weights are wiped off
         (they blur an overall effect).
-        `percentile_information` define minimal information amount
-        which are in the return patterns. Default 80% of weights magnitude.
+        `percentile_information` keep the key weights which coverts the
+        `percentile` of the total information. Default 80% of weights magnitude.
     """
     percentile_mask: int = 80
     percentile_information: int = 80
@@ -75,7 +75,8 @@ class AttentionPatternRecognizer(PatternRecognizer):
         called the model `interest`. Mask unnecessary weights. """
         interest = (attentions * attention_grads).numpy()
         interest = np.sum(interest, axis=(0, 1))
-        interest = self.clean(interest, percentile=self.percentile_mask)
+        interest = self.mask_noise(interest, percentile=self.percentile_mask)
+        interest = self.normalize(interest)
         return interest
 
     def get_patterns(
@@ -127,14 +128,29 @@ class AttentionPatternRecognizer(PatternRecognizer):
         return cls_id, text_ids, aspect_id
 
     @staticmethod
-    def clean(interest: np.ndarray, percentile: int) -> np.ndarray:
-        """ Normalize the interest values so that the max magnitude equals
-        one. Mask weights which are under the weight magnitude percentile. """
-        magnitude = np.abs(interest)
-        interest /= magnitude.max()
-        threshold = np.percentile(magnitude, percentile)
-        mx = ma.masked_array(interest, magnitude < threshold)
-        interest = mx.filled(0)
+    def mask_noise(interest: np.ndarray, percentile: int) -> np.ndarray:
+        """ Keep the key weights which coverts the `percentile` of
+        the total information (the sum of weight magnitudes). """
+        magnitudes = np.abs(interest)
+        information = np.sum(magnitudes)
+        increasing_magnitudes = np.sort(magnitudes.ravel())
+        magnitude_sorted = increasing_magnitudes[::-1]
+        cumsum = np.cumsum(magnitude_sorted)
+
+        min_information = information * percentile / 100
+        index = np.searchsorted(cumsum, min_information, 'right')
+        index = index - 1 if index == len(magnitude_sorted) else index
+        threshold = magnitude_sorted[index]
+
+        mx = ma.masked_array(interest, magnitudes < threshold)
+        clean_interest = mx.filled(0)
+        return clean_interest
+
+    @staticmethod
+    def normalize(interest: np.ndarray) -> np.ndarray:
+        """ Normalize the interest so that the max magnitude equals one. """
+        interest = interest.copy()
+        interest /= np.max(np.abs(interest))
         return interest
 
     @staticmethod
