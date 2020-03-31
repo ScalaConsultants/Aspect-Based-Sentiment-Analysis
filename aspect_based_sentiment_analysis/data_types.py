@@ -12,11 +12,16 @@ class Sentiment(IntEnum):
 
 @dataclass(frozen=True)
 class Pattern:
-    name: str
     impact: float
-    confidence: float
     tokens: List[str]
     weights: List[float]
+
+
+@dataclass(frozen=True)
+class AspectPattern:
+    tokens: List[str]
+    aspect_come_from: List[float]
+    aspect_look_at: List[float]
 
 
 @dataclass(frozen=True)
@@ -25,7 +30,8 @@ class Prediction:
     aspect: str
     sentiment: Sentiment
     scores: List[float]
-    patterns: List[Pattern]
+    aspect_pattern: AspectPattern = None
+    patterns: List[Pattern] = None
 
 
 class TrainExample(ABC):
