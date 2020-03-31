@@ -49,7 +49,8 @@ class AttentionPatternRecognizer(PatternRecognizer):
         magnitude percentile. Default 80% of lowest weights are wiped off
         (they blur an overall effect).
         `percentile_information` keep the key weights which coverts the
-        `percentile` of the total information. Default 80% of weights magnitude.
+        `percentile` of the total information. Default 80% of weights
+        magnitude.
     """
     percentile_mask: int = 80
     percentile_information: int = 80
@@ -76,7 +77,6 @@ class AttentionPatternRecognizer(PatternRecognizer):
         interest = (attentions * attention_grads).numpy()
         interest = np.sum(interest, axis=(0, 1))
         interest = self.mask_noise(interest, percentile=self.percentile_mask)
-        interest = self.normalize(interest)
         return interest
 
     def get_patterns(
@@ -94,8 +94,10 @@ class AttentionPatternRecognizer(PatternRecognizer):
         prediction on average. The approximation of these word `mixtures` are
         rows of the interest matrix. Select only key patterns. """
         cls_id, text_ids, aspect_id = self.get_indices(document)
-        impacts = interest[cls_id, text_ids]
-        mixtures = interest[text_ids, text_ids]
+        impacts = interest[cls_id, text_ids] * -1
+        mixtures = np.abs(interest[text_ids, :][:, text_ids])
+        impacts = self.normalize(impacts)
+        mixtures = self.normalize(mixtures)
         key_impacts, key_mixtures = self.get_key_mixtures(
             impacts, mixtures, percentile=self.percentile_information)
         patterns = self.construct_patterns(document, key_impacts, key_mixtures)
@@ -113,24 +115,18 @@ class AttentionPatternRecognizer(PatternRecognizer):
         the aspect representation on average. Also, we add the `aspect_look_at`
         weights to check what it is interesting for the aspect to look at. """
         cls_id, text_ids, aspect_id = self.get_indices(document)
-        aspect_come_from = interest[aspect_id, text_ids].tolist()
-        aspect_look_at = interest[text_ids, aspect_id].tolist()
+        aspect_come_from = np.abs(interest[aspect_id, text_ids])
+        aspect_look_at = np.abs(interest[text_ids, aspect_id])
+        aspect_come_from = self.normalize(aspect_come_from).tolist()
+        aspect_look_at = self.normalize(aspect_look_at).tolist()
         aspect_pattern = AspectPattern(
-            document.tokens, aspect_come_from, aspect_look_at)
+            document.text_tokens, aspect_come_from, aspect_look_at)
         return aspect_pattern
-
-    @staticmethod
-    def get_indices(document: Document) -> Tuple[int, List[int], int]:
-        """ Get indices for the class token, text words, and the aspect word
-        according to the BERT input structure. """
-        indices = np.arange(len(document.tokens))
-        cls_id, *text_ids, sep1_id, aspect_id, sep2_id = indices
-        return cls_id, text_ids, aspect_id
 
     @staticmethod
     def mask_noise(interest: np.ndarray, percentile: int) -> np.ndarray:
         """ Keep the key weights which coverts the `percentile` of
-        the total information (the sum of weight magnitudes). """
+        the total information (the sum of the weight magnitudes). """
         magnitudes = np.abs(interest)
         information = np.sum(magnitudes)
         increasing_magnitudes = np.sort(magnitudes.ravel())
@@ -147,11 +143,19 @@ class AttentionPatternRecognizer(PatternRecognizer):
         return clean_interest
 
     @staticmethod
-    def normalize(interest: np.ndarray) -> np.ndarray:
-        """ Normalize the interest so that the max magnitude equals one. """
-        interest = interest.copy()
-        interest /= np.max(np.abs(interest))
-        return interest
+    def get_indices(document: Document) -> Tuple[int, List[int], int]:
+        """ Get indices for the class token, text words, and the aspect word
+        according to the BERT input structure. """
+        indices = np.arange(len(document.tokens))
+        cls_id, *text_ids, sep1_id, aspect_id, sep2_id = indices
+        return cls_id, text_ids, aspect_id
+
+    @staticmethod
+    def normalize(x: np.ndarray) -> np.ndarray:
+        """ Normalize the array so that the max magnitude equals one. """
+        x = x / np.max(np.abs(x))  # Copy the `x` array (avoid inplace).
+        x = np.round(x, decimals=3)
+        return x
 
     @staticmethod
     def get_key_mixtures(
@@ -160,7 +164,7 @@ class AttentionPatternRecognizer(PatternRecognizer):
             percentile: int
     ) -> Tuple[List[float], List[List[float]]]:
         """ Get the most important mixtures, weights of patterns. """
-        increasing_order = np.argsort(impacts)
+        increasing_order = np.argsort(np.abs(impacts))
         order = increasing_order[::-1]
         results = []
         magnitude = 0
@@ -180,6 +184,6 @@ class AttentionPatternRecognizer(PatternRecognizer):
             impacts: List[float],
             mixtures: List[List[float]]
     ) -> List[Pattern]:
-        patterns = [Pattern(impact, document.tokens, weights)
+        patterns = [Pattern(impact, document.text_tokens, weights)
                     for impact, weights in zip(impacts, mixtures)]
         return patterns
