@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 from typing import Iterable
 from aspect_based_sentiment_analysis import Sentiment
-from aspect_based_sentiment_analysis import ClassifierExample
+from aspect_based_sentiment_analysis.training import ClassifierExample
 
 
 def read_sentences(file):
