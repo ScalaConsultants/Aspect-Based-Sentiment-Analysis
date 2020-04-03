@@ -31,7 +31,7 @@ def batches(examples: Iterable[Any], batch_size: int,
             continue
         yield batch
         batch = []
-    # Return the last incomplete batch if it is needed
+    # Return the last incomplete batch if it is necessary.
     if batch and reminder:
         yield batch
 
@@ -61,3 +61,18 @@ def file_from_bucket(name: str):
     local_path = f'{os.path.dirname(__file__)}/downloads/{name}'
     maybe_download_from_bucket(bucket, remote_path, local_path)
     return local_path
+
+
+def cache_fixture(fixture):
+    """ The function helps to cache test fixtures (only for test cases). """
+
+    def wrapper(request, *args):
+        name = request.fixturename
+        val = request.config.cache.get(name, None)
+        if not val:
+            # Make sure that you pass the `request` argument.
+            val = fixture(request, *args)
+            request.config.cache.set(name, val)
+        return val
+
+    return wrapper
