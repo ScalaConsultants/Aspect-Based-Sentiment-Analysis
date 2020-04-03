@@ -1,6 +1,6 @@
 import pytest
 from aspect_based_sentiment_analysis import loads
-from aspect_based_sentiment_analysis import ClassifierExample
+from aspect_based_sentiment_analysis.training import ClassifierExample
 
 
 def test_load_semeval_classifier_examples():

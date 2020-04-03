@@ -7,16 +7,17 @@ import transformers
 from google.cloud.exceptions import NotFound
 
 from . import utils
-from .data_types import ClassifierExample
 from .models import BertABSClassifier
+from .pipelines import Pipeline
 from .pipelines import BertPipeline
+from .training import ClassifierExample
 
 logger = logging.getLogger('absa.pipeline')
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 
 
-def pipeline(name: str, **kwargs):
+def load(name: str = 'absa/classifier-rest-0.1', **kwargs) -> Pipeline:
     """ Files are stored on the HaggingFace AWS S3. """
     try:
         model = BertABSClassifier.from_pretrained(name, **kwargs)
