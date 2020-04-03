@@ -1,36 +1,18 @@
-from dataclasses import dataclass
 from functools import partial
 from typing import List
 from typing import Tuple
 
 import transformers
 import numpy as np
-import tensorflow as tf
+
+from .data_types import AspectSpan
 
 
-@dataclass(frozen=True)
-class Document:
-    text: str
-    text_tokens: List[str]
-    tokens: List[str]
-    sub_tokens: List[str]
-    alignment: List[List[int]]
-    aspect: str = None
-    aspect_tokens: List[str] = None
-
-
-@dataclass(frozen=True)
-class DocumentBatch:
-    token_ids: tf.Tensor
-    attention_mask: tf.Tensor
-    token_type_ids: tf.Tensor
-    documents: List[Document]
-
-
-def make_document(
+def make_aspect_span(
         tokenizer: transformers.BertTokenizer,
-        text: str, aspect: str = None
-) -> Document:
+        text: str,
+        aspect: str = None  # None for the experiment purposes.
+) -> AspectSpan:
     """ """
     basic_tokenizer = tokenizer.basic_tokenizer
     wordpiece_tokenizer = tokenizer.wordpiece_tokenizer
@@ -43,9 +25,16 @@ def make_document(
         if aspect else cls + text_tokens + sep
 
     sub_tokens, alignment = make_alignment(wordpiece_tokenizer, tokens)
-    template = Document(text, text_tokens, tokens, sub_tokens,
-                        alignment, aspect, aspect_tokens)
-    return template
+    aspect_span = AspectSpan(
+        text=text,
+        text_tokens=text_tokens,
+        aspect=aspect,
+        aspect_tokens=aspect_tokens,
+        tokens=tokens,
+        sub_tokens=sub_tokens,
+        alignment=alignment
+    )
+    return aspect_span
 
 
 def make_alignment(
