@@ -10,7 +10,6 @@ class ABSClassifier(ABC):
     """ The Aspect Based Sequence Classifier """
 
     @property
-    @abstractmethod
     def language_model(self) -> tf.keras.Model:
         """ """
 
