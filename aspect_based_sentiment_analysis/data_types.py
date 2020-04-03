@@ -1,9 +1,9 @@
 from enum import IntEnum
-from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Dict
-from typing import List
+from typing import OrderedDict
 from typing import Iterable
+from typing import List
 from typing import Tuple
 
 import tensorflow as tf
