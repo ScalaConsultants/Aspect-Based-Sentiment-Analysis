@@ -1,13 +1,15 @@
 from unittest import mock
 from dataclasses import asdict
+from dataclasses import astuple
 
 import numpy as np
 import pytest
 import tensorflow as tf
 
 import aspect_based_sentiment_analysis as absa
+from aspect_based_sentiment_analysis import AspectSpan
 from aspect_based_sentiment_analysis import utils
-
+from aspect_based_sentiment_analysis.probing import AttentionPatternRecognizer
 tf.random.set_seed(1)
 
 
@@ -20,35 +22,36 @@ def inputs(request):  # The cache function uses the `request` parameter.
     text = ("We are great fans of Slack, but we wish the subscriptions "
             "were more accessible to small startups.")
     aspect = 'slack'
-    document_batch = nlp.preprocess(pairs=[(text, aspect)])
-    document, *_ = document_batch.documents
-    model_outputs = nlp.predict(document_batch)
-    model_outputs = [tensor[0] for tensor in model_outputs]
+    aspect_spans = nlp.preprocess(pairs=[(text, aspect)])
+    input_batch = nlp.batch(aspect_spans)
+    output_batch = nlp.predict(input_batch)
+    outputs = [tensor[0] for tensor in astuple(output_batch)]
 
-    # Covert Document and EagerTensor's to the native python objects
+    # Covert AspectSpan and EagerTensor's to the native python objects
     # and facilitate the serialization process.
-    raw_document = asdict(document)
-    raw_model_outputs = [tensor.numpy().tolist() for tensor in model_outputs]
-    return raw_document, raw_model_outputs
+    aspect_span, *_ = aspect_spans
+    raw_aspect_span = asdict(aspect_span)
+    raw_model_outputs = [tensor.numpy().tolist() for tensor in outputs]
+    return raw_aspect_span, raw_model_outputs
 
 
 def test_integration(inputs):
-    document_kwargs, model_outputs = inputs
-    document = absa.Document(**document_kwargs)
-    model_outputs = [tf.convert_to_tensor(o) for o in model_outputs]
-    scores, *details = model_outputs
+    aspect_span, outputs = inputs
+    aspect_span = AspectSpan(**aspect_span)
+    outputs = [tf.convert_to_tensor(o) for o in outputs]
+    scores, *details = outputs
 
-    recognizer = absa.AttentionPatternRecognizer()
-    aspect_pattern, patterns = recognizer(document, *details)
+    recognizer = AttentionPatternRecognizer()
+    aspect_repr, patterns = recognizer(aspect_span, *details)
 
-    index = np.argmax(np.abs(aspect_pattern.aspect_look_at))
-    assert aspect_pattern.tokens[index] == 'slack'
-    tokens = np.array(aspect_pattern.tokens)
-    look_at = np.array(aspect_pattern.aspect_look_at)
+    index = np.argmax(np.abs(aspect_repr.look_at))
+    assert aspect_repr.tokens[index] == 'slack'
+    tokens = np.array(aspect_repr.tokens)
+    look_at = np.array(aspect_repr.look_at)
     most_important = tokens[look_at != 0].tolist()
     assert most_important == ['great', 'fans', 'of', 'slack', '.']
 
-    come_from = np.array(aspect_pattern.aspect_come_from)
+    come_from = np.array(aspect_repr.come_from)
     most_important = tokens[come_from != 0].tolist()
     assert most_important == ['great', 'fans', 'accessible', 'small']
 
@@ -61,7 +64,7 @@ def test_integration(inputs):
 
 
 def test_get_interest():
-    recognizer = absa.AttentionPatternRecognizer(percentile_mask=80)
+    recognizer = AttentionPatternRecognizer(percentile_mask=80)
     attentions = tf.random.normal([10, 10, 3, 3])
     attention_grads = tf.random.normal([10, 10, 3, 3])
     # Calculate partial results here by the hand.
@@ -93,13 +96,14 @@ def test_get_patterns():
         weights = weights / weights.max()
         return information / np.sum(weights)
 
-    recognizer = absa.AttentionPatternRecognizer(percentile_information=50)
-    document = mock.MagicMock()
-    document.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test', 'SEP']
-    document.text_tokens = ['this', 'is', 'a', 'test']
+    recognizer = AttentionPatternRecognizer(percentile_information=50)
+    aspect_span = mock.MagicMock()
+    aspect_span.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
+                          'SEP']
+    aspect_span.text_tokens = ['this', 'is', 'a', 'test']
     interest = np.arange(64).reshape([8, 8])
 
-    patterns = recognizer.get_patterns(document, interest)
+    patterns = recognizer.get_patterns(aspect_span, interest)
     pattern_1, pattern_2 = patterns
     assert pattern_1.tokens == pattern_2.tokens == ['this', 'is', 'a', 'test']
     assert np.abs(pattern_1.impact) == 1
@@ -108,27 +112,28 @@ def test_get_patterns():
     assert pattern_2.weights == [0.694, 0.722, 0.75, 0.778]
     assert get_ratio(patterns) > 0.5
 
-    recognizer = absa.AttentionPatternRecognizer(percentile_information=80)
-    patterns = recognizer.get_patterns(document, interest)
+    recognizer = AttentionPatternRecognizer(percentile_information=80)
+    patterns = recognizer.get_patterns(aspect_span, interest)
     assert len(patterns) == 3
     assert 0.9 > get_ratio(patterns) > 0.8
 
 
-def test_get_aspect_pattern():
-    recognizer = absa.AttentionPatternRecognizer()
-    document = mock.MagicMock()
-    document.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test', 'SEP']
-    document.text_tokens = ['this', 'is', 'a', 'test']
+def test_get_aspect_representation():
+    recognizer = AttentionPatternRecognizer()
+    aspect_repr = mock.MagicMock()
+    aspect_repr.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
+                          'SEP']
+    aspect_repr.text_tokens = ['this', 'is', 'a', 'test']
     interest = np.arange(64).reshape([8, 8])
 
-    aspect_pattern = recognizer.get_aspect_pattern(document, interest)
+    aspect_pattern = recognizer.get_aspect_representation(aspect_repr, interest)
     assert aspect_pattern.tokens == ['this', 'is', 'a', 'test']
-    assert aspect_pattern.aspect_come_from == [0.942, 0.962, 0.981, 1.0]
-    assert aspect_pattern.aspect_look_at == [0.368, 0.579, 0.789, 1.0]
+    assert aspect_pattern.come_from == [0.942, 0.962, 0.981, 1.0]
+    assert aspect_pattern.look_at == [0.368, 0.579, 0.789, 1.0]
 
 
 def test_mask_noise():
-    recognizer = absa.AttentionPatternRecognizer  # Static method
+    recognizer = AttentionPatternRecognizer  # Static method
     interest = np.array([[1, -1, 5, 6],
                          [2, -1, 2, 1],
                          [0, -1, -5, 1]])
@@ -147,17 +152,18 @@ def test_mask_noise():
 
 
 def test_get_indices():
-    recognizer = absa.AttentionPatternRecognizer  # Static method
-    document = mock.MagicMock()
-    document.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test', 'SEP']
-    cls_id, text_ids, aspect_id = recognizer.get_indices(document)
+    recognizer = AttentionPatternRecognizer  # Static method
+    aspect_span = mock.MagicMock()
+    aspect_span.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
+                          'SEP']
+    cls_id, text_ids, aspect_id = recognizer.get_indices(aspect_span)
     assert cls_id == 0
     assert text_ids == [1, 2, 3, 4]
     assert aspect_id == 6
 
 
 def test_normalize():
-    recognizer = absa.AttentionPatternRecognizer  # Static method
+    recognizer = AttentionPatternRecognizer  # Static method
     interest = np.array([[1, -1, 5, 6],
                          [2, -1, 2, 1],
                          [0, -1, -5, 1]])
@@ -168,7 +174,7 @@ def test_normalize():
 
 
 def test_get_key_mixtures():
-    recognizer = absa.AttentionPatternRecognizer  # Static method
+    recognizer = AttentionPatternRecognizer  # Static method
     impacts = np.array([1, 2, 3])
     mixtures = np.arange(12).reshape(3, 4)
 
@@ -187,11 +193,11 @@ def test_get_key_mixtures():
 
 
 def test_construct_patterns():
-    recognizer = absa.AttentionPatternRecognizer  # Static method
-    document = mock.MagicMock()
+    recognizer = AttentionPatternRecognizer  # Static method
+    aspect_span = mock.MagicMock()
     impacts = [1, 2, 3]
     mixtures = np.arange(12).reshape(3, 4).tolist()
-    patterns = recognizer.construct_patterns(document, impacts, mixtures)
+    patterns = recognizer.construct_patterns(aspect_span, impacts, mixtures)
     assert len(patterns) == 3
     pattern_1, pattern_2, pattern_3 = patterns
     assert pattern_2.impact == 2

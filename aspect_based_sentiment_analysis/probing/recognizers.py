@@ -8,8 +8,8 @@ import numpy as np
 import numpy.ma as ma
 import tensorflow as tf
 
-from ..alignment import Document
-from ..data_types import AspectPattern
+from ..data_types import AspectSpan
+from ..data_types import AspectRepresentation
 from ..data_types import Pattern
 
 
@@ -20,16 +20,16 @@ class PatternRecognizer(ABC):
     @abstractmethod
     def __call__(
             self,
-            document: Document,
+            aspect_span: AspectSpan,
             hidden_states: tf.Tensor,
             attentions: tf.Tensor,
             attention_grads: tf.Tensor
-    ) -> Tuple[AspectPattern, List[Pattern]]:
+    ) -> Tuple[AspectRepresentation, List[Pattern]]:
         """ To recognize patterns, we provide detailed information about a
         prediction, including hidden states after each layer, attentions from
         each head in each layer, and attention gradients with respect to the
-        model output. The Recognizer returns the Aspect Pattern (the words
-        linked to the aspect) and the most significant patterns. """
+        model output. The Recognizer returns the `AspectRepresentation` (the
+        words describing the aspect) and the most significant `Pattern`s. """
 
 
 @dataclass
@@ -57,15 +57,15 @@ class AttentionPatternRecognizer(PatternRecognizer):
 
     def __call__(
             self,
-            document: Document,
+            aspect_span: AspectSpan,
             hidden_states: tf.Tensor,
             attentions: tf.Tensor,
             attention_grads: tf.Tensor
-    ) -> Tuple[AspectPattern, List[Pattern]]:
+    ) -> Tuple[AspectRepresentation, List[Pattern]]:
         interest = self.get_interest(attentions, attention_grads)
-        patterns = self.get_patterns(document, interest)
-        aspect_pattern = self.get_aspect_pattern(document, interest)
-        return aspect_pattern, patterns
+        patterns = self.get_patterns(aspect_span, interest)
+        aspect = self.get_aspect_representation(aspect_span, interest)
+        return aspect, patterns
 
     def get_interest(
             self,
@@ -81,7 +81,7 @@ class AttentionPatternRecognizer(PatternRecognizer):
 
     def get_patterns(
             self,
-            document: Document,
+            aspect_span: AspectSpan,
             interest: np.ndarray
     ) -> List[Pattern]:
         """ The method tries to discover the most significant patterns.
@@ -93,35 +93,36 @@ class AttentionPatternRecognizer(PatternRecognizer):
         mixtures, not words, of the class token representation impact to the
         prediction on average. The approximation of these word `mixtures` are
         rows of the interest matrix. Select only key patterns. """
-        cls_id, text_ids, aspect_id = self.get_indices(document)
+        cls_id, text_ids, aspect_id = self.get_indices(aspect_span)
         impacts = interest[cls_id, text_ids] * -1
         mixtures = np.abs(interest[text_ids, :][:, text_ids])
         impacts = self.normalize(impacts)
         mixtures = self.normalize(mixtures)
         key_impacts, key_mixtures = self.get_key_mixtures(
             impacts, mixtures, percentile=self.percentile_information)
-        patterns = self.construct_patterns(document, key_impacts, key_mixtures)
+        patterns = self.construct_patterns(aspect_span, key_impacts,
+                                           key_mixtures)
         return patterns
 
-    def get_aspect_pattern(
+    def get_aspect_representation(
             self,
-            document: Document,
+            aspect_span: AspectSpan,
             interest: np.ndarray
-    ) -> AspectPattern:
+    ) -> AspectRepresentation:
         """ The presented sentiment classification is aspect-based, so it is
         worth to know the relation between the aspect and words in the text.
         In this case, we distinguish two sets of weights. As for the other
-        patterns, the `aspect_come_from` tells us how each word appeals to
-        the aspect representation on average. Also, we add the `aspect_look_at`
-        weights to check what it is interesting for the aspect to look at. """
-        cls_id, text_ids, aspect_id = self.get_indices(document)
-        aspect_come_from = np.abs(interest[aspect_id, text_ids])
-        aspect_look_at = np.abs(interest[text_ids, aspect_id])
-        aspect_come_from = self.normalize(aspect_come_from).tolist()
-        aspect_look_at = self.normalize(aspect_look_at).tolist()
-        aspect_pattern = AspectPattern(
-            document.text_tokens, aspect_come_from, aspect_look_at)
-        return aspect_pattern
+        patterns, the `come_from` tells us how each word appeals to the
+        aspect representation on average. Also, we add the `look_at` weights
+        to check what it is interesting for the aspect to look at. """
+        cls_id, text_ids, aspect_id = self.get_indices(aspect_span)
+        come_from = np.abs(interest[aspect_id, text_ids])
+        look_at = np.abs(interest[text_ids, aspect_id])
+        come_from = self.normalize(come_from).tolist()
+        look_at = self.normalize(look_at).tolist()
+        aspect_representation = AspectRepresentation(
+            aspect_span.text_tokens, come_from, look_at)
+        return aspect_representation
 
     @staticmethod
     def mask_noise(interest: np.ndarray, percentile: int) -> np.ndarray:
@@ -143,10 +144,10 @@ class AttentionPatternRecognizer(PatternRecognizer):
         return clean_interest
 
     @staticmethod
-    def get_indices(document: Document) -> Tuple[int, List[int], int]:
+    def get_indices(aspect_span: AspectSpan) -> Tuple[int, List[int], int]:
         """ Get indices for the class token, text words, and the aspect word
         according to the BERT input structure. """
-        indices = np.arange(len(document.tokens))
+        indices = np.arange(len(aspect_span.tokens))
         cls_id, *text_ids, sep1_id, aspect_id, sep2_id = indices
         return cls_id, text_ids, aspect_id
 
@@ -180,10 +181,10 @@ class AttentionPatternRecognizer(PatternRecognizer):
 
     @staticmethod
     def construct_patterns(
-            document: Document,
+            aspect_span: AspectSpan,
             impacts: List[float],
             mixtures: List[List[float]]
     ) -> List[Pattern]:
-        patterns = [Pattern(impact, document.text_tokens, weights)
+        patterns = [Pattern(impact, aspect_span.text_tokens, weights)
                     for impact, weights in zip(impacts, mixtures)]
         return patterns
