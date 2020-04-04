@@ -88,7 +88,7 @@ class AspectDocument:
     aspect_spans: List[AspectSpan]
 
     def __iter__(self) -> Iterable[AspectSpan]:
-        return self.aspect_spans
+        return iter(self.aspect_spans)
 
 
 @dataclass(frozen=True)
