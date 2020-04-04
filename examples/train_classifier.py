@@ -11,8 +11,15 @@ import transformers
 from sklearn.model_selection import train_test_split
 
 import aspect_based_sentiment_analysis as absa
-from aspect_based_sentiment_analysis import History
-from aspect_based_sentiment_analysis import ClassifierTrainBatch
+from aspect_based_sentiment_analysis.training import (
+    ClassifierTrainBatch,
+    ClassifierDataset,
+    EarlyStopping,
+    History,
+    Logger,
+    LossHistory,
+    ModelCheckpoint
+)
 
 
 @dataclass
@@ -57,7 +64,7 @@ def experiment(
                                   f'classifier-{domain}-{ID:03}')
     os.makedirs(experiment_dir, exist_ok=False)
     checkpoints_dir = os.path.join(experiment_dir, 'checkpoints')
-    # Remove handlers from previous experiments.
+    # Remove handlers from previous examples.
     logging.getLogger('absa').handlers = []
 
     log_path = os.path.join(experiment_dir, 'experiment.log')
@@ -77,19 +84,19 @@ def experiment(
                                              beta_2=beta_2,
                                              epsilon=1e-8)
 
-    dataset = absa.ClassifierDataset(train_examples, batch_size, tokenizer)
-    test_dataset = absa.ClassifierDataset(test_examples, batch_size, tokenizer)
+    dataset = ClassifierDataset(train_examples, batch_size, tokenizer)
+    test_dataset = ClassifierDataset(test_examples, batch_size, tokenizer)
 
-    logger = absa.Logger(file_path=log_path)
-    loss_history = absa.LossHistory()
+    logger = Logger(file_path=log_path)
+    loss_history = LossHistory()
     acc_history = CategoricalAccuracyHistory()
-    early_stopping = absa.EarlyStopping(loss_history, patience=3,
-                                        min_delta=0.001)
-    checkpoints = absa.ModelCheckpoint(model, loss_history, checkpoints_dir)
+    early_stopping = EarlyStopping(loss_history, patience=3,
+                                   min_delta=0.001)
+    checkpoints = ModelCheckpoint(model, loss_history, checkpoints_dir)
     callbacks = [logger, loss_history, acc_history, checkpoints, early_stopping]
 
-    absa.train_classifier(model, optimizer, dataset, epochs,
-                          test_dataset, callbacks, strategy)
+    absa.training.train_classifier(model, optimizer, dataset, epochs,
+                                   test_dataset, callbacks, strategy)
 
     best_model = absa.BertABSClassifier.from_pretrained(checkpoints.best_model_dir)
     best_model.save_pretrained(experiment_dir)
