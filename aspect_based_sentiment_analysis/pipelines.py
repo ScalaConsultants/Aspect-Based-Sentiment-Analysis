@@ -112,8 +112,10 @@ class BertPipeline(Pipeline):
         return document
 
     def preprocess(self, pairs: List[Tuple[str, str]]) -> List[AspectSpan]:
-        aspect_spans = [alignment.make_aspect_span(self.tokenizer, text, aspect)
-                        for text, aspect in pairs]
+        aspect_spans = [
+            alignment.make_aspect_span(self.tokenizer, text, aspect)
+            for text, aspect in pairs
+        ]
         return aspect_spans
 
     def batch(self, aspect_spans: List[AspectSpan]) -> InputBatch:

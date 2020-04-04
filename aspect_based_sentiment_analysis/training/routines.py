@@ -7,10 +7,10 @@ from typing import List
 import numpy as np
 import tensorflow as tf
 
-from . import Callback
-from . import CallbackList
-from . import TrainBatch
-from . import StopTraining
+from .callbacks import Callback
+from .callbacks import CallbackList
+from .data_types import TrainBatch
+from .errors import StopTraining
 
 logger = logging.getLogger('absa.routines')
 

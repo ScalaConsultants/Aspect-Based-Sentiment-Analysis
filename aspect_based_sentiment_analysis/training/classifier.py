@@ -3,9 +3,9 @@ from typing import List
 
 import tensorflow as tf
 
-from .. import BertABSClassifier
-from . import ClassifierTrainBatch
-from . import Callback
+from ..pipelines import BertABSClassifier
+from .callbacks import Callback
+from .data_types import ClassifierTrainBatch
 from . import routines
 
 

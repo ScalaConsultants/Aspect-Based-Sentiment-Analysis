@@ -5,8 +5,8 @@ import tensorflow as tf
 import transformers
 
 from . import routines
-from . import Callback
-from . import LanguageModelTrainBatch
+from .callbacks import Callback
+from .data_types import LanguageModelTrainBatch
 
 
 def train_language_model(

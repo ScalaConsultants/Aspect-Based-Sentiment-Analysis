@@ -7,35 +7,11 @@ import numpy as np
 import tensorflow as tf
 import transformers
 
-from .. import LanguageModelExample
-from .. import StreamDataset
-from .. import TrainBatch
-from . import language_model_functions
+from ..data_types import LanguageModelTrainBatch
+from ..data_types import LanguageModelExample
+from .datasets import StreamDataset
 from .utils import random
-
-
-@dataclass(frozen=True)
-class LanguageModelTrainBatch(TrainBatch):
-    """ The Language Model Train Batch contains all information needed
-    to perform a single optimization step.
-
-    `token_ids`:
-        Indices of input sequence tokens in the vocabulary.
-    `attention_mask`:
-        Mask to avoid performing attention on padding token indices
-        (this is not related with masks from the language modeling task).
-    `token_type_ids`:
-        Segment token indices to indicate first and second portions of the inputs.
-    `target_masked_token_ids`:
-        Target indices of masked input sequence tokens.
-    `target_is_next`:
-        Target bool labels tell that the segment A follows the segment B or not.
-    """
-    token_ids: tf.Tensor
-    attention_mask: tf.Tensor
-    token_type_ids: tf.Tensor
-    target_masked_token_ids: tf.Tensor
-    target_is_next: tf.Tensor
+from . import language_model_functions
 
 
 @dataclass(frozen=True)

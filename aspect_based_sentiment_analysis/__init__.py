@@ -1,9 +1,7 @@
-from . import alignment
 from .alignment import make_aspect_span
 from .alignment import make_alignment
 from .alignment import merge_input_attentions
 
-from . import data_types
 from .data_types import AspectSpan
 from .data_types import AspectSpanLabeled
 from .data_types import AspectDocument
@@ -14,16 +12,13 @@ from .data_types import InputBatch
 from .data_types import OutputBatch
 from .data_types import Sentiment
 
-from . import loads
 from .loads import load
 from .loads import load_docs
 from .loads import load_classifier_examples
 
-from . import models
 from .models import BertABSCConfig
 from .models import BertABSClassifier
 
-from . import pipelines
 from .pipelines import Pipeline
 from .pipelines import BertPipeline
 

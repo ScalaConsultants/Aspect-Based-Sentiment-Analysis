@@ -5,12 +5,9 @@ from typing import Iterator
 from typing import List
 
 import numpy as np
-from . import TrainExample
 
-
-class TrainBatch(ABC):
-    """ The Train Batch contains all information needed
-    to perform a single optimization step. """
+from ..data_types import TrainBatch
+from ..data_types import TrainExample
 
 
 class Dataset(ABC):

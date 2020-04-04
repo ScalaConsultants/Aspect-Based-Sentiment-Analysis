@@ -8,8 +8,8 @@ from google.cloud.exceptions import NotFound
 
 from . import utils
 from .models import BertABSClassifier
-from .pipelines import Pipeline
 from .pipelines import BertPipeline
+from .pipelines import Pipeline
 from .training import ClassifierExample
 
 logger = logging.getLogger('absa.pipeline')
