@@ -5,10 +5,14 @@ import numpy as np
 import tensorflow as tf
 from testfixtures import LogCapture
 
-from aspect_based_sentiment_analysis import LossHistory
-from aspect_based_sentiment_analysis import ModelCheckpoint
-from aspect_based_sentiment_analysis import BertABSCConfig
-from aspect_based_sentiment_analysis import BertABSClassifier
+from aspect_based_sentiment_analysis import (
+    BertABSCConfig,
+    BertABSClassifier
+)
+from aspect_based_sentiment_analysis.training import (
+    LossHistory,
+    ModelCheckpoint
+)
 
 
 def test_loss_history_callback():
