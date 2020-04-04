@@ -179,8 +179,8 @@ class BertPipeline(Pipeline):
         sentiment_ids = np.argmax(batch.scores, axis=-1).astype(int)
         for i, aspect_span in enumerate(aspect_spans):
             sentiment_id = sentiment_ids[i]
-            aspect_interest, patterns = self.pattern_recognizer(
-                aspect_span=aspect_spans,
+            aspect_representation, patterns = self.pattern_recognizer(
+                aspect_span=aspect_span,
                 hidden_states=batch.hidden_states[i],
                 attentions=batch.attentions[i],
                 attention_grads=batch.attention_grads[i]
@@ -189,7 +189,7 @@ class BertPipeline(Pipeline):
             aspect_span_labeled = AspectSpanLabeled(
                 sentiment=Sentiment(sentiment_id),
                 scores=batch.scores[i],
-                aspect_representation=aspect_interest,
+                aspect_representation=aspect_representation,
                 patterns=patterns,
                 **kwargs
             )
