@@ -4,9 +4,9 @@ from typing import List
 import tensorflow as tf
 import transformers
 
-from .. import routines
-from ..callbacks import Callback
-from ..preprocessing.language_model import LanguageModelTrainBatch
+from . import routines
+from . import Callback
+from . import LanguageModelTrainBatch
 
 
 def train_language_model(
@@ -20,10 +20,6 @@ def train_language_model(
 ):
     """ Post train (fine-tune) the pretrained language model. """
     with strategy.scope():
-
-        def language_model_loss(*args) -> tf.Tensor:
-            """ """
-            raise NotImplemented
 
         def train_step(*batch: List[tf.Tensor]):
             token_ids, attention_mask, token_type_ids, *targets = batch
@@ -56,3 +52,8 @@ def train_language_model(
         epochs=epochs,
         callbacks=callbacks
     )
+
+
+def language_model_loss(*args) -> tf.Tensor:
+    """ """
+    raise NotImplemented

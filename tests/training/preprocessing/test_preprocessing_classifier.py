@@ -1,12 +1,14 @@
 from unittest import mock
+
 import pytest
 import transformers
 import numpy as np
 
-from aspect_based_sentiment_analysis.data_types import Sentiment
-from aspect_based_sentiment_analysis.data_types import ClassifierExample
-from aspect_based_sentiment_analysis.preprocessing\
-    .classifier import ClassifierDataset
+from aspect_based_sentiment_analysis import Sentiment
+from aspect_based_sentiment_analysis.training import (
+    ClassifierExample,
+    ClassifierDataset
+)
 np.random.seed(2)
 
 

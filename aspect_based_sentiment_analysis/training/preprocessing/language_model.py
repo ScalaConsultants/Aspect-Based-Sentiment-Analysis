@@ -7,9 +7,9 @@ import numpy as np
 import tensorflow as tf
 import transformers
 
-from ..data_types import LanguageModelExample
-from ..datasets import StreamDataset
-from ..datasets import TrainBatch
+from .. import LanguageModelExample
+from .. import StreamDataset
+from .. import TrainBatch
 from . import language_model_functions
 from .utils import random
 
@@ -143,7 +143,7 @@ class LanguageModelDataset(StreamDataset):
 
                 # Adjust segments lengths, and ensure that
                 # they do not exceed the limit.
-                segment_a, segment_b = language_model_functions\
+                segment_a, segment_b = language_model_functions \
                     .truncate_pair(segment_a, segment_b, self.max_num_tokens)
 
                 # Decode tokens to strings, therefore language model examples

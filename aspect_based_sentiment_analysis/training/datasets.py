@@ -5,8 +5,7 @@ from typing import Iterator
 from typing import List
 
 import numpy as np
-
-from .data_types import TrainExample
+from . import TrainExample
 
 
 class TrainBatch(ABC):

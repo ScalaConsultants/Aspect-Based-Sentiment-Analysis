@@ -5,9 +5,9 @@ from typing import Iterable
 import tensorflow as tf
 import transformers
 
-from ..data_types import ClassifierExample
-from ..datasets import InMemoryDataset
-from ..datasets import TrainBatch
+from .. import ClassifierExample
+from .. import InMemoryDataset
+from .. import TrainBatch
 
 
 @dataclass(frozen=True)

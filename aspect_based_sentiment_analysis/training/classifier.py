@@ -3,10 +3,10 @@ from typing import List
 
 import tensorflow as tf
 
-from .. import routines
-from ..callbacks import Callback
-from ..models import BertABSClassifier
-from ..preprocessing.classifier import ClassifierTrainBatch
+from .. import BertABSClassifier
+from . import ClassifierTrainBatch
+from . import Callback
+from . import routines
 
 
 def train_classifier(

@@ -3,8 +3,7 @@ from mock import MagicMock
 import numpy as np
 import tensorflow as tf
 
-from aspect_based_sentiment_analysis \
-    .preprocessing import language_model_functions
+from aspect_based_sentiment_analysis.training import language_model_functions
 np.random.seed(1)
 tf.random.set_seed(1)
 
@@ -32,7 +31,8 @@ def test_mask_tokens():
     tokenizer.__len__.return_value = vocabulary_len
     tokenizer.pad_token_id = padding_token_id
     tokenizer.mask_token = None
-    tokenizer.convert_tokens_to_ids = lambda _: mask_token_id  # We only convert mask token
+    # We only convert mask token
+    tokenizer.convert_tokens_to_ids = lambda _: mask_token_id
 
     def mock_get_special_tokens_mask(token_ids, already_has_special_tokens):
         return [1 if token == special_token_id else 0 for token in token_ids]
@@ -52,6 +52,6 @@ def test_mask_tokens():
 
     # Now, we should check, if our target is masked in the input 80% of time.
     target_to_predict = masked_targets != -100
-    masked_target_ration = np.sum(masked_inputs[target_to_predict] == mask_token_id) \
-                           / np.sum(target_to_predict)
+    mask = masked_inputs[target_to_predict] == mask_token_id
+    masked_target_ration = np.sum(mask) / np.sum(target_to_predict)
     assert round(masked_target_ration, 2) == 0.80

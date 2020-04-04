@@ -1,11 +1,13 @@
 from unittest import mock
+
 import pytest
 import transformers
 import numpy as np
 
-from aspect_based_sentiment_analysis.data_types import LanguageModelExample
-from aspect_based_sentiment_analysis.preprocessing \
-    .language_model import LanguageModelDataset
+from aspect_based_sentiment_analysis.training import (
+    LanguageModelExample,
+    LanguageModelDataset
+)
 np.random.seed(2)
 
 
