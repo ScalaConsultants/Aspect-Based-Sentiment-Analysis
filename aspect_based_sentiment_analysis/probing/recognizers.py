@@ -45,15 +45,14 @@ class AttentionPatternRecognizer(PatternRecognizer):
     Nonetheless, it gives a good intuition about how model reasoning works.
 
     Parameters:
-        `percentile_mask` mask weights which are under the weight
-        magnitude percentile. Default 80% of lowest weights are wiped off
+        `mask_weights_below` mask weights which are under the weight
+        magnitude percentile. Default 50% of lowest weights are wiped off
         (they blur an overall effect).
-        `percentile_information` keep the key weights which coverts the
-        `percentile` of the total information. Default 80% of weights
-        magnitude.
+        `information_in_patterns` returns the key patterns which coverts the
+        percentile of the total information. Default 80% of weights magnitude.
     """
-    percentile_mask: int = 80
-    percentile_information: int = 80
+    mask_weights_below: int = 50
+    information_in_patterns: int = 80
 
     def __call__(
             self,
@@ -76,7 +75,7 @@ class AttentionPatternRecognizer(PatternRecognizer):
         called the model `interest`. Mask unnecessary weights. """
         interest = (attentions * attention_grads).numpy()
         interest = np.sum(interest, axis=(0, 1))
-        interest = self.mask_noise(interest, percentile=self.percentile_mask)
+        interest = self.mask_noise(interest, percentile=self.mask_weights_below)
         return interest
 
     def get_patterns(
@@ -94,14 +93,16 @@ class AttentionPatternRecognizer(PatternRecognizer):
         prediction on average. The approximation of these word `mixtures` are
         rows of the interest matrix. Select only key patterns. """
         cls_id, text_ids, aspect_id = self.get_indices(aspect_span)
+        # Note that the gradient comes from the loss function, and it is why
+        # we have to change the sign to get a direction of the improvement.
         impacts = interest[cls_id, text_ids] * -1
         mixtures = np.abs(interest[text_ids, :][:, text_ids])
-        impacts = self.normalize(impacts)
-        mixtures = self.normalize(mixtures)
+        impacts = self.scale(impacts)
+        mixtures = self.scale(mixtures)
         key_impacts, key_mixtures = self.get_key_mixtures(
-            impacts, mixtures, percentile=self.percentile_information)
-        patterns = self.construct_patterns(aspect_span, key_impacts,
-                                           key_mixtures)
+            impacts, mixtures, percentile=self.information_in_patterns)
+        patterns = self.construct_patterns(
+            aspect_span, key_impacts, key_mixtures)
         return patterns
 
     def get_aspect_representation(
@@ -118,8 +119,8 @@ class AttentionPatternRecognizer(PatternRecognizer):
         cls_id, text_ids, aspect_id = self.get_indices(aspect_span)
         come_from = np.abs(interest[aspect_id, text_ids])
         look_at = np.abs(interest[text_ids, aspect_id])
-        come_from = self.normalize(come_from).tolist()
-        look_at = self.normalize(look_at).tolist()
+        come_from = self.scale(come_from).tolist()
+        look_at = self.scale(look_at).tolist()
         aspect_representation = AspectRepresentation(
             aspect_span.text_tokens, come_from, look_at)
         return aspect_representation
@@ -152,11 +153,10 @@ class AttentionPatternRecognizer(PatternRecognizer):
         return cls_id, text_ids, aspect_id
 
     @staticmethod
-    def normalize(x: np.ndarray) -> np.ndarray:
-        """ Normalize the array so that the max magnitude equals one. """
-        x = x / np.max(np.abs(x))  # Copy the `x` array (avoid inplace).
-        x = np.round(x, decimals=3)
-        return x
+    def scale(x: np.ndarray, epsilon: float = 1e-16) -> np.ndarray:
+        """ Scale the array so that the max magnitude equals one. """
+        scaled = x / np.max(np.abs(x) + epsilon)
+        return scaled
 
     @staticmethod
     def get_key_mixtures(

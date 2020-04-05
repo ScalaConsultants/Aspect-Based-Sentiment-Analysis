@@ -41,7 +41,7 @@ def test_integration(inputs):
     outputs = [tf.convert_to_tensor(o) for o in outputs]
     scores, *details = outputs
 
-    recognizer = AttentionPatternRecognizer()
+    recognizer = AttentionPatternRecognizer(mask_weights_below=80)
     aspect_repr, patterns = recognizer(aspect_span, *details)
 
     index = np.argmax(np.abs(aspect_repr.look_at))
@@ -64,7 +64,7 @@ def test_integration(inputs):
 
 
 def test_get_interest():
-    recognizer = AttentionPatternRecognizer(percentile_mask=80)
+    recognizer = AttentionPatternRecognizer(mask_weights_below=80)
     attentions = tf.random.normal([10, 10, 3, 3])
     attention_grads = tf.random.normal([10, 10, 3, 3])
     # Calculate partial results here by the hand.
@@ -96,7 +96,7 @@ def test_get_patterns():
         weights = weights / weights.max()
         return information / np.sum(weights)
 
-    recognizer = AttentionPatternRecognizer(percentile_information=50)
+    recognizer = AttentionPatternRecognizer(information_in_patterns=50)
     aspect_span = mock.MagicMock()
     aspect_span.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
                           'SEP']
@@ -107,12 +107,13 @@ def test_get_patterns():
     pattern_1, pattern_2 = patterns
     assert pattern_1.tokens == pattern_2.tokens == ['this', 'is', 'a', 'test']
     assert np.abs(pattern_1.impact) == 1
-    assert pattern_1.weights == [0.917, 0.944, 0.972, 1.0]
+    assert np.allclose(pattern_1.weights, [0.917, 0.944, 0.972, 1.0], atol=0.01)
     assert np.abs(pattern_2.impact) == 0.75
-    assert pattern_2.weights == [0.694, 0.722, 0.75, 0.778]
+    assert np.allclose(pattern_2.weights, [0.694, 0.722, 0.75, 0.778],
+                       atol=0.01)
     assert get_ratio(patterns) > 0.5
 
-    recognizer = AttentionPatternRecognizer(percentile_information=80)
+    recognizer = AttentionPatternRecognizer(information_in_patterns=80)
     patterns = recognizer.get_patterns(aspect_span, interest)
     assert len(patterns) == 3
     assert 0.9 > get_ratio(patterns) > 0.8
@@ -128,8 +129,10 @@ def test_get_aspect_representation():
 
     aspect_pattern = recognizer.get_aspect_representation(aspect_repr, interest)
     assert aspect_pattern.tokens == ['this', 'is', 'a', 'test']
-    assert aspect_pattern.come_from == [0.942, 0.962, 0.981, 1.0]
-    assert aspect_pattern.look_at == [0.368, 0.579, 0.789, 1.0]
+    assert np.allclose(aspect_pattern.come_from, [0.942, 0.962, 0.981, 1.0],
+                       atol=0.01)
+    assert np.allclose(aspect_pattern.look_at, [0.368, 0.579, 0.789, 1.0],
+                       atol=0.01)
 
 
 def test_mask_noise():
@@ -162,12 +165,12 @@ def test_get_indices():
     assert aspect_id == 6
 
 
-def test_normalize():
+def test_scale():
     recognizer = AttentionPatternRecognizer  # Static method
     interest = np.array([[1, -1, 5, 6],
                          [2, -1, 2, 1],
                          [0, -1, -5, 1]])
-    normalized = np.round(recognizer.normalize(interest), decimals=2).tolist()
+    normalized = np.round(recognizer.scale(interest), decimals=2).tolist()
     assert normalized == [[0.17, -0.17, 0.83, 1.0],
                           [0.33, -0.17, 0.33, 0.17],
                           [0.0, -0.17, -0.83, 0.17]]
