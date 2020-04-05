@@ -112,27 +112,37 @@ def test_predict(name, tokenizer):
     assert np.argmax(scores, axis=-1).tolist() == [2, 2]
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 def test_label(name, tokenizer):
     model = BertABSClassifier.from_pretrained(
         name,
         output_attentions=True,
         output_hidden_states=True
     )
-    pattern_recognizer = AttentionPatternRecognizer(percentile_mask=100)
-    nlp = BertPipeline(model, tokenizer,
-                       pattern_recognizer=pattern_recognizer)
-    text_1 = "We are great fans of Slack."
+    pattern_recognizer = AttentionPatternRecognizer()
+    nlp = BertPipeline(
+        model, tokenizer,
+        pattern_recognizer=pattern_recognizer
+    )
+    text_1 = ("We are great fans of Slack, but we wish the subscriptions "
+              "were more accessible to small startups.")
     text_2 = "The Slack often has bugs."
-    aspect = "Slack"
-    pairs = [(text_1, aspect), (text_2, aspect)]
+    text_3 = "best of all is the warm vibe"
+    aspect = "slack"
+    pairs = [(text_1, aspect), (text_2, aspect), (text_3, aspect)]
+
     aspect_spans = nlp.preprocess(pairs)
     input_batch = nlp.batch(aspect_spans)
     output_batch = nlp.predict(input_batch)
     aspect_span_labeled = nlp.label(aspect_spans, output_batch)
     aspect_span_labeled = list(aspect_span_labeled)
-    labeled_1, labeled_2 = aspect_span_labeled
+    labeled_1, labeled_2, labeled_3 = aspect_span_labeled
     assert labeled_1.sentiment == Sentiment.positive
     assert labeled_2.sentiment == Sentiment.negative
-    assert np.argmax(labeled_1.aspect_representation.come_from) == 5
-    assert np.argmax(labeled_2.aspect_representation.come_from) == 1
+    assert np.argmax(labeled_1.aspect_representation.look_at) == 5
+    assert np.argmax(labeled_2.aspect_representation.look_at) == 1
+
+    # We need to calibrate the model. The prediction should be neutral.
+    # In fact, the model does not recognize the aspect.
+    assert labeled_3.sentiment == Sentiment.positive
+    assert np.allclose(labeled_3.aspect_representation.look_at, 0)
