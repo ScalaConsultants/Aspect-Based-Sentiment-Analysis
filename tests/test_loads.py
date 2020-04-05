@@ -1,10 +1,25 @@
 import pytest
-from aspect_based_sentiment_analysis import loads
+
+from aspect_based_sentiment_analysis import (
+    load,
+    load_classifier_examples,
+    Sentiment
+)
+from aspect_based_sentiment_analysis.loads import NotFound
 from aspect_based_sentiment_analysis.training import ClassifierExample
 
 
+def test_load():
+    nlp = load('absa/classifier-rest-0.1')
+    text = ("We are great fans of Slack, but we wish the subscriptions "
+            "were more accessible to small startups.")
+    slack, price = nlp(text, aspects=['slack', 'price'])
+    assert slack.sentiment == Sentiment.positive
+    assert price.sentiment == Sentiment.negative
+
+
 def test_load_semeval_classifier_examples():
-    examples = loads.load_classifier_examples(
+    examples = load_classifier_examples(
         dataset='semeval',
         domain='laptop',
         test=False
@@ -12,7 +27,7 @@ def test_load_semeval_classifier_examples():
     assert len(examples) == 2313
     assert isinstance(examples[0], ClassifierExample)
 
-    test_examples = loads.load_classifier_examples(
+    test_examples = load_classifier_examples(
         dataset='semeval',
         domain='laptop',
         test=True
@@ -26,7 +41,7 @@ def test_load_semeval_classifier_examples():
     # train and test set.
     assert len(texts & test_texts) == 1
 
-    examples = loads.load_classifier_examples(
+    examples = load_classifier_examples(
         dataset='semeval',
         domain='restaurant',
         test=False
@@ -34,7 +49,7 @@ def test_load_semeval_classifier_examples():
     assert len(examples) == 3602
     assert isinstance(examples[0], ClassifierExample)
 
-    test_examples = loads.load_classifier_examples(
+    test_examples = load_classifier_examples(
         dataset='semeval',
         domain='restaurant',
         test=True
@@ -48,5 +63,5 @@ def test_load_semeval_classifier_examples():
     # which appears in both train and test set.
     assert len(texts & test_texts) == 1
 
-    with pytest.raises(loads.NotFound):
-        loads.load_classifier_examples(dataset='mistake')
+    with pytest.raises(NotFound):
+        load_classifier_examples(dataset='mistake')

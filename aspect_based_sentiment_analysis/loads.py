@@ -20,7 +20,12 @@ DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 def load(name: str = 'absa/classifier-rest-0.1', **kwargs) -> Pipeline:
     """ Files are stored on the HaggingFace AWS S3. """
     try:
-        model = BertABSClassifier.from_pretrained(name, **kwargs)
+        model = BertABSClassifier.from_pretrained(
+            name,
+            output_attentions=True,
+            output_hidden_states=True,
+            **kwargs
+        )
         tokenizer = transformers.BertTokenizer.from_pretrained(name)
         return BertPipeline(model, tokenizer)
 
