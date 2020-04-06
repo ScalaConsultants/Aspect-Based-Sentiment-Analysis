@@ -45,13 +45,12 @@ class AttentionPatternRecognizer(PatternRecognizer):
     Nonetheless, it gives a good intuition about how model reasoning works.
 
     Parameters:
-        `mask_weights_below` mask weights which are under the weight
-        magnitude percentile. Default 50% of lowest weights are wiped off
-        (they blur an overall effect).
+        `keep_key_weights` mask weights which are under the weight
+        magnitude percentile. Default is turn off.
         `information_in_patterns` returns the key patterns which coverts the
         percentile of the total information. Default 80% of weights magnitude.
     """
-    mask_weights_below: int = 50
+    keep_key_weights: int = 100
     information_in_patterns: int = 80
 
     def __call__(
@@ -75,7 +74,7 @@ class AttentionPatternRecognizer(PatternRecognizer):
         called the model `interest`. Mask unnecessary weights. """
         interest = (attentions * attention_grads).numpy()
         interest = np.sum(interest, axis=(0, 1))
-        interest = self.mask_noise(interest, percentile=self.mask_weights_below)
+        interest = self.mask_noise(interest, percentile=self.keep_key_weights)
         return interest
 
     def get_patterns(

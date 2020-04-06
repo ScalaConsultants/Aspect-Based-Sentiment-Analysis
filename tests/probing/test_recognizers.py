@@ -41,7 +41,7 @@ def test_integration(inputs):
     outputs = [tf.convert_to_tensor(o) for o in outputs]
     scores, *details = outputs
 
-    recognizer = AttentionPatternRecognizer(mask_weights_below=80)
+    recognizer = AttentionPatternRecognizer(keep_key_weights=80)
     aspect_repr, patterns = recognizer(aspect_span, *details)
 
     index = np.argmax(np.abs(aspect_repr.look_at))
@@ -64,7 +64,7 @@ def test_integration(inputs):
 
 
 def test_get_interest():
-    recognizer = AttentionPatternRecognizer(mask_weights_below=80)
+    recognizer = AttentionPatternRecognizer(keep_key_weights=80)
     attentions = tf.random.normal([10, 10, 3, 3])
     attention_grads = tf.random.normal([10, 10, 3, 3])
     # Calculate partial results here by the hand.
