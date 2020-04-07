@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Callable
 from typing import Iterable
 from typing import List
 
@@ -10,6 +11,7 @@ from . import utils
 from .models import BertABSClassifier
 from .pipelines import BertPipeline
 from .pipelines import Pipeline
+from .probing import PatternRecognizer
 from .training import ClassifierExample
 
 logger = logging.getLogger('absa.pipeline')
@@ -17,17 +19,25 @@ ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 
 
-def load(name: str = 'absa/classifier-rest-0.1', **kwargs) -> Pipeline:
+def load(
+        name: str = 'absa/classifier-rest-0.1',
+        sentencizer: Callable[[str], List[str]] = None,
+        pattern_recognizer: PatternRecognizer = None,
+        **model_kwargs
+) -> Pipeline:
     """ Files are stored on the HaggingFace AWS S3. """
     try:
+        # Force a model to output attentions and hidden states due to
+        # the fixed definition of the OutputBatch (a more strict interface).
         model = BertABSClassifier.from_pretrained(
             name,
             output_attentions=True,
             output_hidden_states=True,
-            **kwargs
+            **model_kwargs
         )
         tokenizer = transformers.BertTokenizer.from_pretrained(name)
-        return BertPipeline(model, tokenizer)
+        nlp = BertPipeline(model, tokenizer, sentencizer, pattern_recognizer)
+        return nlp
 
     except EnvironmentError as error:
         text = 'Model or Tokenizer not found. Please check a documentation.'
@@ -36,7 +46,7 @@ def load(name: str = 'absa/classifier-rest-0.1', **kwargs) -> Pipeline:
 
 
 def load_docs(fname: str) -> Iterable[List[str]]:
-    """  """
+    """ The function loads documents used for the language modeling. """
     raise NotImplemented
 
 
