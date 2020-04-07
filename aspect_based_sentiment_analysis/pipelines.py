@@ -188,7 +188,7 @@ class BertPipeline(Pipeline):
             kwargs = asdict(aspect_span)
             aspect_span_labeled = AspectSpanLabeled(
                 sentiment=Sentiment(sentiment_id),
-                scores=batch.scores[i],
+                scores=batch.scores[i].numpy().tolist(),
                 aspect_representation=aspect_representation,
                 patterns=patterns,
                 **kwargs
@@ -225,6 +225,7 @@ class BertPipeline(Pipeline):
             aspect_spans = batch[start:end]
             first = aspect_spans[0]
             scores = np.max([s.scores for s in aspect_spans], axis=0)
+            scores /= np.linalg.norm(scores, ord=1)
             sentiment_id = np.argmax(scores).astype(int)
             aspect_document = AspectDocumentLabeled(
                 text=document.text,
