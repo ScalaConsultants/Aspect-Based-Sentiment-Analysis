@@ -47,10 +47,10 @@ def highlight_pattern(pattern: Pattern) -> str:
 
 def explain(aspect_span: AspectSpanLabeled):
     aspect = aspect_span.aspect_representation
-    texts = ['Words connected with the aspect: <br>']
+    texts = [f'Words connected with the "{aspect_span.aspect}" aspect: <br>']
     texts.extend(highlight_sequence(aspect.tokens, aspect.look_at))
     texts.append('<br><br>')
-    texts.append('Key Patterns: <br>')
+    texts.append('The model uses these patterns to make a prediction: <br>')
     texts.extend([highlight_pattern(pattern) + '<br>'
                   for pattern in aspect_span.patterns])
     text = ' '.join(texts)
