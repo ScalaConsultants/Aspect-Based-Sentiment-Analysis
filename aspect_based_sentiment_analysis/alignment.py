@@ -13,7 +13,11 @@ def make_aspect_span(
         text: str,
         aspect: str = None  # None for the experiment purposes.
 ) -> AspectSpan:
-    """ """
+    """ Make the `AspectSpan` from the raw text/aspect pair. As for most NLP
+    tasks, we need to tokenize raw strings at the very beginning. Besides,
+    we have to split tokens to sub_tokens using the *word-piece tokenizer*,
+    according to the input format of the language model. We take care to do
+    the alignment between them for better interpretability. """
     basic_tokenizer = tokenizer.basic_tokenizer
     wordpiece_tokenizer = tokenizer.wordpiece_tokenizer
 
@@ -41,7 +45,8 @@ def make_alignment(
         tokenizer: transformers.WordpieceTokenizer,
         tokens: List[str]
 ) -> Tuple[List[str], List[List[int]]]:
-    """ """
+    """ Make the alignment between tokens and the sub-tokens. It is
+    useful to interpret results or understand the model reasoning. """
     i = 0
     sub_tokens = []
     alignment = []

@@ -22,10 +22,9 @@ class AspectSpan:
     """ Preprocess the pair of a text (sentence/document)
     and an aspect to the model understandable form.
     The model can not process the raw pair of two
-    strings (text, aspect) directly. As for most NLP
-    tasks, we need to tokenize both at the very
-    beginning. Besides, we have to split tokens to
-    sub_tokens using the *word-piece tokenizer*,
+    strings (text, aspect) directly. We need to tokenize
+    both at the very beginning. Besides, we have to split
+    tokens to sub_tokens using the *word-piece tokenizer*,
     according to the input format of the language model.
     We take care to do the alignment between them for
     better interpretability. For now, only the single
