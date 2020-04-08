@@ -35,7 +35,47 @@ logger = logging.getLogger('absa.pipeline')
 
 @dataclass
 class Pipeline(ABC):
-    """ """
+    """
+    The pipeline simplify the use of the fine-tuned Aspect-Based
+    Sentiment Classifier.
+
+    For the basic inference, you benefit from the `__call__` method. You just
+    pass the raw document text together with aspects. The pipeline performs
+    several clear transformations:
+        - convert raw text and aspects into the document,
+        - stack each aspect-spans from the document, and
+          encode them into the model compatible input batch,
+        - pass it to the model, and get the output batch,
+        - use the output batch, to label the aspect-spans,
+          and build the labeled document,
+    which the pipeline returns to you. If you wish to build your own pipeline,
+    we hope you should benefit from some of them.
+
+    The aim is to classify the sentiment of a potentially long text for
+    several aspects. We made two important design decisions. Firstly,
+    even some research presents how to make a prediction for several aspects
+    at once, we process aspects independently. Secondly, we split a text into
+    smaller independent chunks, called spans. They can include a single
+    sentence or several sentences. It depends how works a `sentencizer`. Note
+    that longer spans have the richer context information.
+
+    Equally importantly, the pipeline interprets the model predictions.
+    Thanks to the integrated `pattern_recognizer`, we can investigate how
+    much results are reliable. In our task, we are curious about two thinks
+    at most. Firstly, we want to be sure that the model connects the correct
+    word or words with the aspect. If the model does it wrong, the sentiment
+    concerns the different entity. Secondly, even if the model recognized the
+    aspect correctly, we wish to better understand the model reasoning. To do
+    so, the pattern recognizer estimates the key patterns, the weighted
+    sequence of words, and theirs approximated impact to the prediction. We
+    want to avoid situation wherein a single word or weird word's combination
+    triggers the model.
+
+    Please note that the package contains the separated submodule
+    `absa.training`. You can find there complete routines to tune either the
+    language model or the classification layer. Check out the examples on the
+    home repository.
+    """
     model: ABSClassifier
     tokenizer: transformers.PreTrainedTokenizer
     sentencizer: Callable[[str], List[str]]
@@ -43,18 +83,31 @@ class Pipeline(ABC):
 
     @abstractmethod
     def __call__(self, text: str, aspects: List[str]) -> DocumentLabeled:
-        """ """
+        """
+
+
+        Parameters
+        ----------
+        text
+
+        aspects
+
+        Returns
+        -------
+        doc_labeled
+
+        """
 
     @abstractmethod
     def get_document(self, text: str, aspects: List[str]) -> Document:
-        """ """
+        """"""
 
     @abstractmethod
     def preprocess(self, pairs: List[Tuple[str, str]]) -> List[AspectSpan]:
         """ """
 
     @abstractmethod
-    def batch(self, aspect_spans: List[AspectSpan]) -> InputBatch:
+    def encode(self, aspect_spans: List[AspectSpan]) -> InputBatch:
         """ """
 
     @abstractmethod
@@ -94,7 +147,7 @@ class BertPipeline(Pipeline):
     ) -> DocumentLabeled:
         doc = self.get_document(text, aspects)
         aspect_spans = doc.batch
-        input_batch = self.batch(aspect_spans)
+        input_batch = self.encode(aspect_spans)
         output_batch = self.predict(input_batch)
         aspect_spans_labeled = self.label(aspect_spans, output_batch)
         doc_labeled = self.get_document_labeled(doc, aspect_spans_labeled)
@@ -118,7 +171,7 @@ class BertPipeline(Pipeline):
         ]
         return aspect_spans
 
-    def batch(self, aspect_spans: List[AspectSpan]) -> InputBatch:
+    def encode(self, aspect_spans: List[AspectSpan]) -> InputBatch:
         token_pairs = [(aspect_span.text_tokens, aspect_span.aspect_tokens)
                        for aspect_span in aspect_spans]
         encoded = self.tokenizer.batch_encode_plus(
@@ -205,7 +258,7 @@ class BertPipeline(Pipeline):
         for batch in batches:
             pairs = [(e.text, e.aspect) for e in batch]
             aspect_spans = self.preprocess(pairs)
-            input_batch = self.batch(aspect_spans)
+            input_batch = self.encode(aspect_spans)
             output_batch = self.predict(input_batch)
             aspect_span_labeled = self.label(aspect_spans, output_batch)
             y_pred = [a.sentiment.value for a in aspect_span_labeled]
