@@ -1,9 +1,10 @@
 name: Aspect-Based-Sentiment-Analysis
 dependencies:
   - python=3.7
-  - tensorflow-gpu=2.1
+  - tensorflow=2.1
   - scikit-learn=0.22
   - pytest=5.3
+  - ipython=7.3
   - pip:
     google-cloud-storage=1.26
     testfixtures=6.14
