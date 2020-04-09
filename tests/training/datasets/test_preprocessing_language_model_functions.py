@@ -55,4 +55,4 @@ def test_mask_tokens():
     target_to_predict = masked_targets != -100
     mask = masked_inputs[target_to_predict] == mask_token_id
     masked_target_ration = np.sum(mask) / np.sum(target_to_predict)
-    assert round(masked_target_ration, 2) == 0.80
+    assert round(masked_target_ration, 2) == 0.79

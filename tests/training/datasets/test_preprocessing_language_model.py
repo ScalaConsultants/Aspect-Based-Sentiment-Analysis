@@ -8,7 +8,6 @@ from aspect_based_sentiment_analysis.training import (
     LanguageModelExample,
     LanguageModelDataset
 )
-np.random.seed(2)
 
 
 @pytest.fixture
@@ -44,6 +43,7 @@ def test_examples_generator(tokenizer):
 
 
 def test_preprocess_batch(tokenizer):
+    np.random.seed(2)  # Make sure
     example_1 = LanguageModelExample(
         text_a='This is an arbitrary sentence A',
         text_b='This is an arbitrary sentence B',
@@ -76,10 +76,9 @@ def test_preprocess_batch(tokenizer):
     assert np.allclose(inputs[1, [seq_length//2, -1]], tokenizer.sep_token_id)
 
     # We make sure, that targets are not in the input, outside of randomization
-    # (in this case we have a random 'p r i n c i p l e s')
     targets = batch.target_masked_token_ids.numpy()
     mask_token_id = tokenizer.convert_tokens_to_ids(tokenizer.mask_token)
-    assert set(inputs[targets != -100]) == {mask_token_id, 6481}
+    assert set(inputs[targets != -100]) == {mask_token_id}
     # More sophisticated checks are implemented in the `mask_tokens`
     # function in the `language_model_functions` module.
 
