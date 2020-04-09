@@ -1,3 +1,6 @@
+# Version of the aspect-based-sentiment-analysis package
+__version__ = "1.0.1"
+
 from .alignment import make_aspect_span
 from .alignment import make_alignment
 from .alignment import merge_input_attentions

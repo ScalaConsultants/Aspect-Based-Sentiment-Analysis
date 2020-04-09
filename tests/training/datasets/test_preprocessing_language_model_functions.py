@@ -3,7 +3,8 @@ from mock import MagicMock
 import numpy as np
 import tensorflow as tf
 
-from aspect_based_sentiment_analysis.training import language_model_functions
+from aspect_based_sentiment_analysis.training.datasets \
+    import language_model_functions
 np.random.seed(1)
 tf.random.set_seed(1)
 

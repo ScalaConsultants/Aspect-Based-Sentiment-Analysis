@@ -10,20 +10,17 @@ import aspect_based_sentiment_analysis as absa
 from aspect_based_sentiment_analysis import AspectSpan
 from aspect_based_sentiment_analysis import utils
 from aspect_based_sentiment_analysis.probing import AttentionPatternRecognizer
-tf.random.set_seed(1)
 
 
 @pytest.fixture
 @utils.cache_fixture
 def inputs(request):  # The cache function uses the `request` parameter.
-    nlp = absa.load('absa/classifier-rest-0.1',
-                    output_attentions=True,
-                    output_hidden_states=True)
+    nlp = absa.load('absa/classifier-rest-0.1')
     text = ("We are great fans of Slack, but we wish the subscriptions "
             "were more accessible to small startups.")
     aspect = 'slack'
     aspect_spans = nlp.preprocess(pairs=[(text, aspect)])
-    input_batch = nlp.batch(aspect_spans)
+    input_batch = nlp.encode(aspect_spans)
     output_batch = nlp.predict(input_batch)
     outputs = [tensor[0] for tensor in astuple(output_batch)]
 
@@ -65,6 +62,7 @@ def test_integration(inputs):
 
 def test_get_interest():
     recognizer = AttentionPatternRecognizer(keep_key_weights=80)
+    tf.random.set_seed(1)
     attentions = tf.random.normal([10, 10, 3, 3])
     attention_grads = tf.random.normal([10, 10, 3, 3])
     # Calculate partial results here by the hand.

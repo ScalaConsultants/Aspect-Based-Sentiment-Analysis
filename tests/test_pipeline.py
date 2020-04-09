@@ -67,7 +67,7 @@ def test_batch(nlp: BertPipeline):
     text_2 = "We are great fans of Slack"
     aspect = "Slack"
     aspect_spans = nlp.preprocess(pairs=[(text_1, aspect), (text_2, aspect)])
-    input_batch = nlp.batch(aspect_spans)
+    input_batch = nlp.encode(aspect_spans)
     assert isinstance(input_batch.token_ids, tf.Tensor)
     # 101 the CLS token, 102 the SEP tokens.
     token_ids = input_batch.token_ids.numpy()
@@ -91,7 +91,7 @@ def test_predict(nlp: BertPipeline):
     text_2 = "We are great fans of Slack"
     aspect = "Slack"
     aspect_spans = nlp.preprocess(pairs=[(text_1, aspect), (text_2, aspect)])
-    input_batch = nlp.batch(aspect_spans)
+    input_batch = nlp.encode(aspect_spans)
     output_batch = nlp.predict(input_batch)
     assert output_batch.scores.shape == [2, 3]
     assert output_batch.hidden_states.shape == [2, 13, 23, 768]
@@ -114,7 +114,7 @@ def test_label(nlp: BertPipeline):
     pairs = [(text_1, aspect), (text_2, aspect), (text_3, aspect)]
 
     aspect_spans = nlp.preprocess(pairs)
-    input_batch = nlp.batch(aspect_spans)
+    input_batch = nlp.encode(aspect_spans)
     output_batch = nlp.predict(input_batch)
     aspect_span_labeled = nlp.label(aspect_spans, output_batch)
     aspect_span_labeled = list(aspect_span_labeled)
@@ -156,7 +156,7 @@ def test_get_document_labeled(nlp: BertPipeline):
 
     doc = nlp.get_document(text, aspects=['slack', 'price'])
     aspect_spans = doc.batch
-    input_batch = nlp.batch(aspect_spans)
+    input_batch = nlp.encode(aspect_spans)
     output_batch = nlp.predict(input_batch)
     aspect_span_labeled = nlp.label(aspect_spans, output_batch)
 
