@@ -21,7 +21,7 @@ DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 
 def load(
         name: str = 'absa/classifier-rest-0.1',
-        sentencizer: Callable[[str], List[str]] = None,
+        text_splitter: Callable[[str], List[str]] = None,
         pattern_recognizer: PatternRecognizer = None,
         **model_kwargs
 ) -> Pipeline:
@@ -36,7 +36,7 @@ def load(
             **model_kwargs
         )
         tokenizer = transformers.BertTokenizer.from_pretrained(name)
-        nlp = BertPipeline(model, tokenizer, sentencizer, pattern_recognizer)
+        nlp = BertPipeline(model, tokenizer, text_splitter, pattern_recognizer)
         return nlp
 
     except EnvironmentError as error:

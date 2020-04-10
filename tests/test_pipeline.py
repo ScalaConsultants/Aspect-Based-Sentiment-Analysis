@@ -150,7 +150,7 @@ def test_get_document_labeled(nlp: BertPipeline):
     text = ("We are great fans of Slack.\n"
             "The Slack often has bugs.\n"
             "best of all is the warm vibe")
-    # Make sure we have defined a sentencizer, even naive.
+    # Make sure we have defined a text_splitter, even naive.
     sentencizer = lambda text: text.split('\n')
     nlp.sentencizer = sentencizer
 
