@@ -107,7 +107,9 @@ def test_restaurant_dataset():
     ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.18, 0.22, 0.6]
-    absa.utils.save(examples, 'classifier-semeval-restaurant-train.bin')
+    file_path = os.path.join(data_dir,
+                             'classifier-semeval-restaurant-train.bin')
+    absa.utils.save(examples, file_path)
 
 
 @pytest.mark.skipif(not os.path.isfile(laptop_data),
@@ -136,7 +138,8 @@ def test_laptop_dataset():
     ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.2, 0.37, 0.43]
-    absa.utils.save(examples, 'classifier-semeval-laptop-train.bin')
+    file_path = os.path.join(data_dir, 'classifier-semeval-laptop-train.bin')
+    absa.utils.save(examples, file_path)
 
 
 @pytest.mark.skipif(not os.path.isfile(test_restaurant_data),
@@ -165,7 +168,8 @@ def test_restaurant_test_dataset():
     ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.18, 0.18, 0.65]
-    absa.utils.save(examples, 'classifier-semeval-restaurant-test.bin')
+    file_path = os.path.join(data_dir, 'classifier-semeval-restaurant-test.bin')
+    absa.utils.save(examples, file_path)
 
 
 @pytest.mark.skipif(not os.path.isfile(test_laptop_data),
@@ -194,4 +198,5 @@ def test_laptop_test_dataset():
     ratios = np.array([count(label) for label in Sentiment]) / len(examples)
     # The labels are in the order: [neutral, negative, positive]
     assert ratios.round(2).tolist() == [0.26, 0.2, 0.53]
-    absa.utils.save(examples, 'classifier-semeval-laptop-test.bin')
+    file_path = os.path.join(data_dir, 'classifier-semeval-laptop-test.bin')
+    absa.utils.save(examples, file_path)
