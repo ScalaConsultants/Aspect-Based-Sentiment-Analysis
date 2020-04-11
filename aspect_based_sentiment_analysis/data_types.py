@@ -18,31 +18,45 @@ class Sentiment(IntEnum):
 
 
 @dataclass(frozen=True)
-class AspectSpan:
-    """ Preprocess the pair of a text (sentence/document)
-    and an aspect to the model understandable form.
-    The model can not process the raw pair of two
-    strings (text, aspect) directly. We need to tokenize
-    both at the very beginning. Besides, we have to split
-    tokens to sub_tokens using the *word-piece tokenizer*,
-    according to the input format of the language model.
-    We take care to do the alignment between them for
-    better interpretability. For now, only the single
-    word should describe an aspect (one token). """
+class Example:
+    """ The example is the pair of two raw strings
+    (text, aspect). This is the essential input data
+    type to classify a text for a given aspect. """
+    text: str
+    aspect: str
+
+
+@dataclass(frozen=True)
+class LabeledExample(Example):
+    """ The labeled example contains additionally
+    the defined sentiment. """
+    sentiment: Sentiment
+
+
+@dataclass(frozen=True)
+class TokenizedExample:
+    """ We can not encode an example to the input tensors
+    directly. We need to tokenize both strings (text, aspect)
+    at the very beginning. Moreover, we have to split tokens
+    to subtokens using the *word-piece tokenizer*, according
+    to the input format of the language model. We take care to
+    do the alignment between tokens and subtokens for better
+    interpretability. For now, only the single word should
+    describe an aspect (one token). """
     text: str
     text_tokens: List[str]
     aspect: str
     aspect_tokens: List[str]
     tokens: List[str]
-    sub_tokens: List[str]
+    subtokens: List[str]
     alignment: List[List[int]]
 
 
 @dataclass(frozen=True)
 class Pattern:
-    """ The weighted tokens describe the `Pattern`.
-    Each pattern has a different `impact` to the final
-    prediction. """
+    """ The weighted tokens describe the pattern. The pattern
+    is an elementary tool to explain the model reasoning. Each
+    pattern has a different `impact` to the final prediction. """
     impact: float
     tokens: List[str]
     weights: List[float]
@@ -50,110 +64,116 @@ class Pattern:
 
 @dataclass(frozen=True)
 class AspectRepresentation:
-    """ The model looks for relations between the text
-    and the aspect. The `AspectRepresentation` shows which
-    words impact to the final aspect representation
-    `come_from` and how the aspect affects different
-    word representations `look_at`. """
+    """ The aspect representation contains two special patterns
+    related to the aspect. Firstly, the `come_from` weights
+    describe the aspect final representation. They tend to be
+    sort of nominal modifiers. Secondly, the `look_at` weights
+    describe how the aspect affects different words. These
+    weights seem to indicates words which show coreference
+    to the aspect. """
     tokens: List[str]
     come_from: List[float]
     look_at: List[float]
 
 
 @dataclass(frozen=True)
-class AspectSpanLabeled(AspectSpan):
-    """ After the classification, each the Aspect Span
-    contains additional attributes such as the sentiment,
-    scores for each sentiment class, and patterns. The
-    aspect interest and patterns are optional (they are
-    if a pipeline has a pattern recognizer). """
-    sentiment: Sentiment
+class PredictedExample(TokenizedExample, LabeledExample):
+    """ After the classification, each example has a predicted
+    label and scores for each sentiment class. The aspect
+    representation and patterns are optional. They are if
+    a pipeline has a pattern recognizer. """
     scores: List[float]
     aspect_representation: AspectRepresentation = None
     patterns: List[Pattern] = None
 
 
 @dataclass(frozen=True)
-class AspectDocument:
-    """ Due to the computation constraints, before we start
+class SubTask:
+    """
+    Due to the computation constraints, before we start
     to preprocess the input pair of strings (text, aspect)
-    directly to the `AspectSpan`, we may need to split a long
+    directly to the `TokenizedExample`, we may need to split a
+    long
     text into smaller text chunks, and build several aspect
     spans. They can include a single sentence or several sentences
-    (it depends how works the provided sentencizer in a pipeline)
+    (it depends how works the provided *text_splitter* in a pipeline)
     Please note that longer spans have the richer context information. """
     text: str
     aspect: str
-    aspect_spans: List[AspectSpan]
+    examples: List[TokenizedExample]
 
-    def __iter__(self) -> Iterable[AspectSpan]:
-        return iter(self.aspect_spans)
+    def __iter__(self) -> Iterable[TokenizedExample]:
+        return iter(self.examples)
 
 
 @dataclass(frozen=True)
-class AspectDocumentLabeled(AspectDocument):
+class CompletedSubTask(SubTask):
     """ This is a container which keeps detailed information
     about the prediction, the labeled aspect spans. It has
     the overall sentiment for the input pair of strings
     (text, aspect). """
-    aspect_spans: List[AspectSpanLabeled]
+    examples: List[PredictedExample]
     sentiment: Sentiment
     scores: List[float]
 
 
 @dataclass(frozen=True)
-class Document:
-    """ The `Document` collects all pre-processed `AspectDocument`s
+class Task:
+    """ The `Task` collects all pre-processed `SubTask`s
     in one place. Commonly, we do the sentiment classification for
     several aspects at the same time. Therefore, to make a prediction,
     we want to stack each aspect-span from each aspect-document
-    to the single batch, and finally, pass it to the model. To do so,
-    we have the `batch` property. Additionally, the `indices` help to
-    convert the batch back to the `DocumentLabeled` after the prediction. """
+    to the single examples, and finally, pass it to the model.
+    To do so,
+    we have the `examples` property. Additionally,
+    the `indices` help to
+    convert the examples back to the `CompletedTask` after the
+    prediction. """
     text: str
-    aspect_docs: OrderedDict[str, AspectDocument]
+    aspects: List[str]
+    subtasks: OrderedDict[str, SubTask]
 
     @property
     def indices(self) -> List[Tuple[int, int]]:
         indices = []
         start, end = 0, 0
-        for aspect_doc in self:
-            length = len(list(aspect_doc))
+        for subtask in self:
+            length = len(list(subtask))
             end += length
             indices.append((start, end))
             start += length
         return indices
 
     @property
-    def batch(self) -> List[AspectSpan]:
-        return [span for doc in self for span in doc]
+    def batch(self) -> List[TokenizedExample]:
+        return [example for subtask in self for example in
+                subtask]
 
     def __getitem__(self, aspect: str):
-        return self.aspect_docs[aspect]
+        return self.subtasks[aspect]
 
-    def __iter__(self) -> Iterable[AspectDocument]:
-        aspects = self.aspect_docs.keys()
-        return (self[aspect] for aspect in aspects)
+    def __iter__(self) -> Iterable[SubTask]:
+        return (self[aspect] for aspect in self.aspects)
 
 
 @dataclass(frozen=True)
-class DocumentLabeled(Document):
-    """ The `Document` collects all `AspectDocumentLabeled`s.
+class CompletedTask(Task):
+    """ The `Task` collects all `CompletedSubTask`s.
     A pipeline returns it as the final prediction result. """
-    aspect_docs: Dict[str, AspectDocumentLabeled]
+    subtasks: Dict[str, CompletedSubTask]
 
 
 @dataclass(frozen=True)
 class InputBatch:
-    """ The model uses these tensors to perform a prediction.
-    The names are compatible with the *transformers* package.
-    The `token_ids` contains indices of input sequence
-    _sub_tokens_ in the vocabulary. The `attention_mask` is used
-    to avoid performing attention on padding token indices
-    (this is not related with masks from the language modeling
-    task). The `token_type_ids` is a segment token indices
-    to indicate first and second portions of the inputs,
-    zeros and ones. """
+    """ The model uses these tensors to perform a prediction. The
+    names are compatible with the *transformers* package. The
+    `token_ids` contains indices of input sequence
+    _sub_tokens_ in
+    the vocabulary. The `attention_mask` is used to avoid
+    performing attention on padding token indices (this is not
+    related with masks from the language modeling task). The
+    `token_type_ids` is a segment token indices to indicate first
+    and second portions of the inputs, zeros and ones. """
     token_ids: tf.Tensor
     attention_mask: tf.Tensor
     token_type_ids: tf.Tensor
@@ -162,8 +182,9 @@ class InputBatch:
 @dataclass(frozen=True)
 class OutputBatch:
     """ The model returns not only scores, the softmax of logits,
-    but also stacked hidden states [batch, layer, sequence, embedding],
-    attentions [batch, layer, head, attention, attention], and attention
+    but also stacked hidden states [examples, layer, sequence,
+    embedding],
+    attentions [examples, layer, head, attention, attention], and attention
     gradients with respect to the model output. All of them are useful
     not only for the classification, but also we use them to probe and
     understand model's decision-making. """
