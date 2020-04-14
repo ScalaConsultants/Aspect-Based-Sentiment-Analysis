@@ -9,8 +9,6 @@ from .callbacks import LossHistory
 from .classifier import train_classifier
 from .classifier import classifier_loss
 
-from .data_types import TrainExample
-from .data_types import ClassifierExample
 from .data_types import LanguageModelExample
 from .data_types import TrainBatch
 from .data_types import ClassifierTrainBatch

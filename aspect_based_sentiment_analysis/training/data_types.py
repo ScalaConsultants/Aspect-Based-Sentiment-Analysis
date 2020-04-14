@@ -1,28 +1,13 @@
 from abc import ABC
 from dataclasses import dataclass
-
 import tensorflow as tf
-
-from ..data_types import Sentiment
-
-
-class TrainExample(ABC):
-    """ The Train Example represents a single
-     observation used in the training. """
 
 
 @dataclass(frozen=True)
-class LanguageModelExample(TrainExample):
+class LanguageModelExample:
     text_a: str
     text_b: str
     is_next: int
-
-
-@dataclass(frozen=True)
-class ClassifierExample(TrainExample):
-    text: str
-    aspect: str
-    sentiment: Sentiment
 
 
 class TrainBatch(ABC):

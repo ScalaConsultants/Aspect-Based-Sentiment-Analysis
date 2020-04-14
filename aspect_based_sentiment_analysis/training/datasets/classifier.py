@@ -5,22 +5,22 @@ from typing import Iterable
 import tensorflow as tf
 import transformers
 
+from ...data_types import LabeledExample
 from ..data_types import ClassifierTrainBatch
-from ..data_types import ClassifierExample
 from .datasets import InMemoryDataset
 
 
 @dataclass(frozen=True)
 class ClassifierDataset(InMemoryDataset):
-    examples: List[ClassifierExample]
+    examples: List[LabeledExample]
     batch_size: int
     tokenizer: transformers.PreTrainedTokenizer
     num_polarities: int = 3
 
     def preprocess_batch(
-            self, batch_examples: List[ClassifierExample]
+            self, batch_examples: List[LabeledExample]
     ) -> ClassifierTrainBatch:
-        """ Convert classifier model examples to the ClassifierTrainBatch. """
+        """ Convert classifier model example to the ClassifierTrainBatch. """
         pairs = [(e.text, e.aspect) for e in batch_examples]
         encoded = self.tokenizer.batch_encode_plus(
             pairs,
@@ -43,8 +43,8 @@ class ClassifierDataset(InMemoryDataset):
         return train_batch
 
     @classmethod
-    def from_iterable(cls, examples: Iterable[ClassifierExample], *args, **kwargs):
-        """ For simplification, we materialize the iterable of examples to have
-        straightforward control over the processing examples order """
+    def from_iterable(cls, examples: Iterable[LabeledExample], *args, **kwargs):
+        """ For simplification, we materialize the iterable of example to have
+        straightforward control over the processing example order """
         examples = list(examples)
         return cls(examples, *args, **kwargs)

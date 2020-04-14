@@ -1,5 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
+from typing import Any
 from typing import Iterable
 from typing import Iterator
 from typing import List
@@ -7,7 +8,6 @@ from typing import List
 import numpy as np
 
 from ..data_types import TrainBatch
-from ..data_types import TrainExample
 
 
 class Dataset(ABC):
@@ -18,18 +18,17 @@ class Dataset(ABC):
         therefore exclusively an iterable object is required. """
 
     @abstractmethod
-    def preprocess_batch(self,
-                         batch_examples: List[TrainExample]) -> TrainBatch:
-        """ Transform human understandable examples into model
+    def preprocess_batch(self, batch_examples: List[Any]) -> TrainBatch:
+        """ Transform human understandable example into model
         understandable tensors. """
 
 
-class InMemoryDataset(Dataset):
+class InMemoryDataset(Dataset, ABC):
     examples: List
     batch_size: int
 
     def __iter__(self) -> Iterator[TrainBatch]:
-        """ The method shuffles examples for next epoch, and returns the full
+        """ The method shuffles example for next epoch, and returns the full
         batches in each iteration. """
         order = np.random.permutation(len(self.examples))
         batch_examples = []
@@ -42,7 +41,7 @@ class InMemoryDataset(Dataset):
                 batch_examples = []
 
 
-class StreamDataset(Dataset):
+class StreamDataset(Dataset, ABC):
     batch_size: int
 
     def __iter__(self) -> Iterator[TrainBatch]:
@@ -57,5 +56,5 @@ class StreamDataset(Dataset):
                 batch_examples = []
 
     @abstractmethod
-    def examples_generator(self) -> Iterable[TrainExample]:
-        """ Stream examples from a data source. """
+    def examples_generator(self) -> Iterable[Any]:
+        """ Stream example from a data source. """
