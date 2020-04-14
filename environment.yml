@@ -9,3 +9,4 @@ dependencies:
     google-cloud-storage=1.26
     testfixtures=6.14
     transformers=2.5
+    optuna=1.3
