@@ -89,15 +89,16 @@ class PredictedExample(TokenizedExample, LabeledExample):
 
 @dataclass(frozen=True)
 class SubTask:
-    """
-    Due to the computation constraints, before we start
-    to preprocess the input pair of strings (text, aspect)
-    directly to the `TokenizedExample`, we may need to split a
-    long
-    text into smaller text chunks, and build several aspect
-    spans. They can include a single sentence or several sentences
-    (it depends how works the provided *text_splitter* in a pipeline)
-    Please note that longer spans have the richer context information. """
+    """ The subtask is to classify the sentiment of a
+    potentially long text for a single aspect. In contrast to
+    convert the pair of two strings (text, aspect) into the
+    example directly and tokenize it, we may need to split a
+    long text into smaller text chunks, called spans. The span
+    can have a single sentence or several sentences (it
+    depends how works the provided *text_splitter* in a
+    pipeline). In consequences, the subtask contains several
+    example. Please note that longer spans have the richer
+    context information. """
     text: str
     aspect: str
     examples: List[TokenizedExample]
@@ -108,10 +109,9 @@ class SubTask:
 
 @dataclass(frozen=True)
 class CompletedSubTask(SubTask):
-    """ This is a container which keeps detailed information
-    about the prediction, the labeled aspect spans. It has
-    the overall sentiment for the input pair of strings
-    (text, aspect). """
+    """ The completed subtask keeps the subtask predicted
+    example after the classification. Also, it aggregates
+    the overall sentient and scores over spans. """
     examples: List[PredictedExample]
     sentiment: Sentiment
     scores: List[float]
@@ -119,22 +119,19 @@ class CompletedSubTask(SubTask):
 
 @dataclass(frozen=True)
 class Task:
-    """ The `Task` collects all pre-processed `SubTask`s
-    in one place. Commonly, we do the sentiment classification for
-    several aspects at the same time. Therefore, to make a prediction,
-    we want to stack each aspect-span from each aspect-document
-    to the single examples, and finally, pass it to the model.
-    To do so,
-    we have the `examples` property. Additionally,
-    the `indices` help to
-    convert the examples back to the `CompletedTask` after the
-    prediction. """
+    """ The task keeps text and aspects in the form of
+    well-prepared tokenized example. The task is to classify
+    the sentiment of a potentially long text for several aspects.
+    Even some research presents how to predict several aspects
+    at once, we process aspects independently. We split the task
+    into subtasks, where each subtask concerns one aspect. """
     text: str
     aspects: List[str]
     subtasks: OrderedDict[str, SubTask]
 
     @property
     def indices(self) -> List[Tuple[int, int]]:
+        """ Get indices of example in the batch. """
         indices = []
         start, end = 0, 0
         for subtask in self:
@@ -146,8 +143,8 @@ class Task:
 
     @property
     def batch(self) -> List[TokenizedExample]:
-        return [example for subtask in self for example in
-                subtask]
+        """ Stack example from each subtask into one batch. """
+        return [example for subtask in self for example in subtask]
 
     def __getitem__(self, aspect: str):
         return self.subtasks[aspect]
@@ -158,22 +155,23 @@ class Task:
 
 @dataclass(frozen=True)
 class CompletedTask(Task):
-    """ The `Task` collects all `CompletedSubTask`s.
-    A pipeline returns it as the final prediction result. """
+    """ The completed task keeps the predicted example after
+    the classification. A pipeline returns it as the final
+    prediction result. """
     subtasks: Dict[str, CompletedSubTask]
 
 
 @dataclass(frozen=True)
 class InputBatch:
-    """ The model uses these tensors to perform a prediction. The
-    names are compatible with the *transformers* package. The
-    `token_ids` contains indices of input sequence
-    _sub_tokens_ in
-    the vocabulary. The `attention_mask` is used to avoid
-    performing attention on padding token indices (this is not
-    related with masks from the language modeling task). The
-    `token_type_ids` is a segment token indices to indicate first
-    and second portions of the inputs, zeros and ones. """
+    """ The model uses these tensors to perform a prediction.
+    The names are compatible with the *transformers* package.
+    The `token_ids` contains indices of input sequence
+    subtokens in the vocabulary. The `attention_mask` is used
+    to avoid performing attention on padding token indices
+    (this is not related with masks from the language modeling
+    task). The `token_type_ids` is a segment token indices to
+    indicate first and second portions of the inputs, zeros
+    and ones. """
     token_ids: tf.Tensor
     attention_mask: tf.Tensor
     token_type_ids: tf.Tensor
@@ -181,13 +179,13 @@ class InputBatch:
 
 @dataclass(frozen=True)
 class OutputBatch:
-    """ The model returns not only scores, the softmax of logits,
-    but also stacked hidden states [examples, layer, sequence,
-    embedding],
-    attentions [examples, layer, head, attention, attention], and attention
-    gradients with respect to the model output. All of them are useful
-    not only for the classification, but also we use them to probe and
-    understand model's decision-making. """
+    """ The model returns not only scores, the softmax of
+    logits, but also stacked hidden states [example, layer,
+    sequence, embedding], attentions [example, layer, head,
+    attention, attention], and attention gradients with
+    respect to the model output. All of them are useful not
+    only for the classification, but also we use them to probe
+    and understand model's decision-making. """
     scores: tf.Tensor
     hidden_states: tf.Tensor
     attentions: tf.Tensor

@@ -8,11 +8,11 @@ import transformers
 from google.cloud.exceptions import NotFound
 
 from . import utils
+from .data_types import LabeledExample
 from .models import BertABSClassifier
 from .pipelines import BertPipeline
 from .pipelines import Pipeline
 from .probing import PatternRecognizer
-from .training import ClassifierExample
 
 logger = logging.getLogger('absa.pipeline')
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -25,10 +25,11 @@ def load(
         pattern_recognizer: PatternRecognizer = None,
         **model_kwargs
 ) -> Pipeline:
-    """ Files are stored on the HaggingFace AWS S3. """
+    """ Load ready to use pipelines. Files are stored on
+    the HaggingFace AWS S3. """
     try:
         # Force a model to output attentions and hidden states due to
-        # the fixed definition of the OutputBatch (a more strict interface).
+        # the fixed definition of the OutputBatch (the more strict interface).
         model = BertABSClassifier.from_pretrained(
             name,
             output_attentions=True,
@@ -50,11 +51,11 @@ def load_docs(fname: str) -> Iterable[List[str]]:
     raise NotImplemented
 
 
-def load_classifier_examples(
+def load_examples(
         dataset: str = 'semeval',
         domain: str = 'laptop',
         test: bool = False
-) -> List[ClassifierExample]:
+) -> List[LabeledExample]:
     """ Download a dataset from the bucket if it is needed. """
     split = 'train' if not test else 'test'
     name = f'classifier-{dataset}-{domain}-{split}.bin'

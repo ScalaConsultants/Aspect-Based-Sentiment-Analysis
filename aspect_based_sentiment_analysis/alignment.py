@@ -5,19 +5,19 @@ from typing import Tuple
 import transformers
 import numpy as np
 
-from .data_types import AspectSpan
+from .data_types import TokenizedExample
 
 
-def make_aspect_span(
+def tokenize(
         tokenizer: transformers.BertTokenizer,
         text: str,
         aspect: str = None  # None for the experiment purposes.
-) -> AspectSpan:
-    """ Make the `AspectSpan` from the raw text/aspect pair. As for most NLP
-    tasks, we need to tokenize raw strings at the very beginning. Besides,
-    we have to split tokens to sub_tokens using the *word-piece tokenizer*,
-    according to the input format of the language model. We take care to do
-    the alignment between them for better interpretability. """
+) -> TokenizedExample:
+    """ Tokenize the example, the pair of two raw strings (text, aspect).
+    Moreover, we have to split tokens to subtokens using the **word-piece
+    tokenizer**, according to the input format of the language model. We take
+    care to do the alignment between tokens and subtokens for better
+    interpretability. """
     basic_tokenizer = tokenizer.basic_tokenizer
     wordpiece_tokenizer = tokenizer.wordpiece_tokenizer
 
@@ -29,24 +29,24 @@ def make_aspect_span(
         if aspect else cls + text_tokens + sep
 
     sub_tokens, alignment = make_alignment(wordpiece_tokenizer, tokens)
-    aspect_span = AspectSpan(
+    example = TokenizedExample(
         text=text,
         text_tokens=text_tokens,
         aspect=aspect,
         aspect_tokens=aspect_tokens,
         tokens=tokens,
-        sub_tokens=sub_tokens,
+        subtokens=sub_tokens,
         alignment=alignment
     )
-    return aspect_span
+    return example
 
 
 def make_alignment(
         tokenizer: transformers.WordpieceTokenizer,
         tokens: List[str]
 ) -> Tuple[List[str], List[List[int]]]:
-    """ Make the alignment between tokens and the sub-tokens. It is
-    useful to interpret results or understand the model reasoning. """
+    """ Make the alignment between tokens and the subtokens. It is
+    useful to interpret results or to understand the model reasoning. """
     i = 0
     sub_tokens = []
     alignment = []
