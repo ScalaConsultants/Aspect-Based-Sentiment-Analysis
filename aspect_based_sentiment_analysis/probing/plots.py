@@ -3,7 +3,7 @@ from typing import List
 from typing import Tuple
 import numpy as np
 from IPython.core.display import HTML
-from ..data_types import AspectSpanLabeled
+from ..data_types import PredictedExample
 from ..data_types import Pattern
 
 
@@ -45,14 +45,14 @@ def highlight_pattern(pattern: Pattern) -> str:
     return highlighted_text
 
 
-def explain(aspect_span: AspectSpanLabeled):
-    aspect = aspect_span.aspect_representation
-    texts = [f'Words connected with the "{aspect_span.aspect}" aspect: <br>']
+def explain(example: PredictedExample):
+    aspect = example.aspect_representation
+    texts = [f'Words connected with the "{example.aspect}" aspect: <br>']
     texts.extend(highlight_sequence(aspect.tokens, aspect.look_at))
     texts.append('<br><br>')
     texts.append('The model uses these patterns to make a prediction: <br>')
     texts.extend([highlight_pattern(pattern) + '<br>'
-                  for pattern in aspect_span.patterns])
+                  for pattern in example.patterns])
     text = ' '.join(texts)
     html_text = HTML(text)
     return html_text
