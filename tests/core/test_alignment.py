@@ -4,15 +4,15 @@ import tensorflow as tf
 import transformers
 from transformers import BertTokenizer
 
-from aspect_based_sentiment_analysis import AspectSpan
+from aspect_based_sentiment_analysis import TokenizedExample
 from aspect_based_sentiment_analysis import make_alignment
 from aspect_based_sentiment_analysis import merge_input_attentions
 np.random.seed(1)
 
 
 @pytest.fixture
-def aspect_span() -> AspectSpan:
-    aspect_span = AspectSpan(
+def example() -> TokenizedExample:
+    example = TokenizedExample(
         text="don't go alone---even two people isn't enough for the whole "
              "experience, with pickles and a selection of meats and seafoods.",
         text_tokens=['don', "'", 't', 'go', 'alone', '-', '-', '-', 'even',
@@ -24,7 +24,7 @@ def aspect_span() -> AspectSpan:
                 'whole', 'experience', ',', 'with', 'pickles', 'and', 'a',
                 'selection', 'of', 'meats', 'and', 'seafoods', '.', '[SEP]',
                 'pickles', '[SEP]'],
-        sub_tokens=['[CLS]', 'don', "'", 't', 'go', 'alone', '-', '-', '-',
+        subtokens=['[CLS]', 'don', "'", 't', 'go', 'alone', '-', '-', '-',
                     'even', 'two', 'people', 'isn', "'", 't', 'enough', 'for',
                     'the', 'whole', 'experience', ',', 'with', 'pick', '##les',
                     'and', 'a', 'selection', 'of', 'meat', '##s', 'and',
@@ -36,7 +36,7 @@ def aspect_span() -> AspectSpan:
         aspect='pickles',
         aspect_tokens=['pickles']
     )
-    return aspect_span
+    return example
 
 
 @pytest.fixture
@@ -46,25 +46,25 @@ def tokenizer() -> BertTokenizer:
     return tokenizer
 
 
-def test_make_alignment(aspect_span: AspectSpan, tokenizer: BertTokenizer):
+def test_make_alignment(example: TokenizedExample, tokenizer: BertTokenizer):
     wordpiece_tokenizer = tokenizer.wordpiece_tokenizer
     sub_tokens, alignment = make_alignment(wordpiece_tokenizer,
-                                           aspect_span.tokens)
-    assert sub_tokens == aspect_span.sub_tokens
-    assert alignment == aspect_span.alignment
+                                           example.tokens)
+    assert sub_tokens == example.subtokens
+    assert alignment == example.alignment
 
 
-def test_merge_input_attentions(aspect_span: AspectSpan):
+def test_merge_input_attentions(example: TokenizedExample):
     # Set up fake attentions
-    n = len(aspect_span.sub_tokens)
+    n = len(example.subtokens)
     attentions = np.zeros([12, 12, 53, 53])
     logits = np.random.randint(0, 10, size=[12, 12, n, n]).astype(float)
     attentions[:, :, :n, :n] = tf.nn.softmax(logits, axis=-1).numpy()
     assert np.isclose(attentions[0, 0, 0, :].sum(), 1.0)
     assert np.isclose(attentions[0, 0, n, :].sum(), 0.0)
 
-    n_align = len(aspect_span.alignment)
-    α = merge_input_attentions(attentions, aspect_span.alignment)
+    n_align = len(example.alignment)
+    α = merge_input_attentions(attentions, example.alignment)
     assert α.shape == (12, 12, n_align, n_align)
     # Still, attention distributions should sum to one.
     assert np.allclose(α.sum(axis=-1), 1)

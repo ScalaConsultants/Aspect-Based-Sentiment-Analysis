@@ -7,7 +7,8 @@ import pytest
 import tensorflow as tf
 
 import aspect_based_sentiment_analysis as absa
-from aspect_based_sentiment_analysis import AspectSpan
+from aspect_based_sentiment_analysis import Example
+from aspect_based_sentiment_analysis import TokenizedExample
 from aspect_based_sentiment_analysis import utils
 from aspect_based_sentiment_analysis.probing import AttentionPatternRecognizer
 
@@ -19,27 +20,28 @@ def inputs(request):  # The cache function uses the `request` parameter.
     text = ("We are great fans of Slack, but we wish the subscriptions "
             "were more accessible to small startups.")
     aspect = 'slack'
-    aspect_spans = nlp.preprocess(pairs=[(text, aspect)])
-    input_batch = nlp.encode(aspect_spans)
+    example = Example(text, aspect)
+    tokenized_examples = nlp.tokenize(examples=[example])
+    input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
     outputs = [tensor[0] for tensor in astuple(output_batch)]
 
-    # Covert AspectSpan and EagerTensor's to the native python objects
-    # and facilitate the serialization process.
-    aspect_span, *_ = aspect_spans
-    raw_aspect_span = asdict(aspect_span)
-    raw_model_outputs = [tensor.numpy().tolist() for tensor in outputs]
-    return raw_aspect_span, raw_model_outputs
+    # Covert the tokenized example and EagerTensor's to the native python
+    # objects to facilitate the serialization process.
+    tokenized_example = tokenized_examples[0]
+    example_dict = asdict(tokenized_example)
+    model_outputs_native = [tensor.numpy().tolist() for tensor in outputs]
+    return example_dict, model_outputs_native
 
 
 def test_integration(inputs):
-    aspect_span, outputs = inputs
-    aspect_span = AspectSpan(**aspect_span)
+    example_dict, outputs = inputs
+    example = TokenizedExample(**example_dict)
     outputs = [tf.convert_to_tensor(o) for o in outputs]
     scores, *details = outputs
 
     recognizer = AttentionPatternRecognizer(keep_key_weights=80)
-    aspect_repr, patterns = recognizer(aspect_span, *details)
+    aspect_repr, patterns = recognizer(example, *details)
 
     index = np.argmax(np.abs(aspect_repr.look_at))
     assert aspect_repr.tokens[index] == 'slack'
@@ -95,13 +97,13 @@ def test_get_patterns():
         return information / np.sum(weights)
 
     recognizer = AttentionPatternRecognizer(information_in_patterns=50)
-    aspect_span = mock.MagicMock()
-    aspect_span.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
+    example = mock.MagicMock()
+    example.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
                           'SEP']
-    aspect_span.text_tokens = ['this', 'is', 'a', 'test']
+    example.text_tokens = ['this', 'is', 'a', 'test']
     interest = np.arange(64).reshape([8, 8])
 
-    patterns = recognizer.get_patterns(aspect_span, interest)
+    patterns = recognizer.get_patterns(example, interest)
     pattern_1, pattern_2 = patterns
     assert pattern_1.tokens == pattern_2.tokens == ['this', 'is', 'a', 'test']
     assert np.abs(pattern_1.impact) == 1
@@ -112,7 +114,7 @@ def test_get_patterns():
     assert get_ratio(patterns) > 0.5
 
     recognizer = AttentionPatternRecognizer(information_in_patterns=80)
-    patterns = recognizer.get_patterns(aspect_span, interest)
+    patterns = recognizer.get_patterns(example, interest)
     assert len(patterns) == 3
     assert 0.9 > get_ratio(patterns) > 0.8
 

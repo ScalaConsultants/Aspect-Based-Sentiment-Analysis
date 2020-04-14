@@ -7,7 +7,8 @@ from aspect_based_sentiment_analysis import (
     BertABSClassifier,
     BertPipeline,
     Sentiment,
-    load_classifier_examples
+    Example,
+    load_examples
 )
 from aspect_based_sentiment_analysis.probing import (
     AttentionPatternRecognizer
@@ -40,34 +41,35 @@ def test_integration(nlp: BertPipeline):
     assert price.sentiment == Sentiment.negative
 
 
-def test_get_document(nlp: BertPipeline):
+def test_preprocess(nlp: BertPipeline):
     # We split a document into spans (in this case, into sentences).
-    naive_sentencizer = lambda text: text.split('\n')
-    nlp.sentencizer = naive_sentencizer
+    nlp.text_splitter = lambda text: text.split('\n')
     raw_document = ("This is the test sentence 1.\n"
                     "This is the test sentence 2.\n"
                     "This is the test sentence 3.")
-    document = nlp.get_document(
+    task = nlp.preprocess(
         text=raw_document,
         aspects=['aspect_1', 'aspect_2']
     )
-    assert len(document.aspect_docs) == 2
-    assert list(document.aspect_docs) == ['aspect_1', 'aspect_2']
-    assert len(document.batch) == 6
-    assert document.indices == [(0, 3), (3, 6)]
-    aspect_1, aspect_2 = document
-    assert aspect_1.text == aspect_2.text == raw_document
-    assert aspect_1.aspect == 'aspect_1'
-    assert len(aspect_1.aspect_spans) == 3
+    assert len(task.subtasks) == 2
+    assert list(task.subtasks) == ['aspect_1', 'aspect_2']
+    assert len(task.batch) == 6
+    assert task.indices == [(0, 3), (3, 6)]
+    subtask_1, subtask_2 = task
+    assert subtask_1.text == subtask_2.text == raw_document
+    assert subtask_1.aspect == 'aspect_1'
+    assert len(subtask_1.examples) == 3
 
 
-def test_batch(nlp: BertPipeline):
+def test_encode(nlp: BertPipeline):
     text_1 = ("We are great fans of Slack, but we wish the subscriptions "
               "were more accessible to small startups.")
     text_2 = "We are great fans of Slack"
     aspect = "Slack"
-    aspect_spans = nlp.preprocess(pairs=[(text_1, aspect), (text_2, aspect)])
-    input_batch = nlp.encode(aspect_spans)
+
+    examples = [Example(text_1, aspect), Example(text_2, aspect)]
+    tokenized_examples = nlp.tokenize(examples)
+    input_batch = nlp.encode(tokenized_examples)
     assert isinstance(input_batch.token_ids, tf.Tensor)
     # 101 the CLS token, 102 the SEP tokens.
     token_ids = input_batch.token_ids.numpy()
@@ -90,8 +92,9 @@ def test_predict(nlp: BertPipeline):
               "were more accessible to small startups.")
     text_2 = "We are great fans of Slack"
     aspect = "Slack"
-    aspect_spans = nlp.preprocess(pairs=[(text_1, aspect), (text_2, aspect)])
-    input_batch = nlp.encode(aspect_spans)
+    examples = [Example(text_1, aspect), Example(text_2, aspect)]
+    tokenized_examples = nlp.tokenize(examples)
+    input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
     assert output_batch.scores.shape == [2, 3]
     assert output_batch.hidden_states.shape == [2, 13, 23, 768]
@@ -111,14 +114,16 @@ def test_label(nlp: BertPipeline):
     text_2 = "The Slack often has bugs."
     text_3 = "best of all is the warm vibe"
     aspect = "slack"
-    pairs = [(text_1, aspect), (text_2, aspect), (text_3, aspect)]
+    examples = [Example(text_1, aspect),
+                Example(text_2, aspect),
+                Example(text_3, aspect)]
 
-    aspect_spans = nlp.preprocess(pairs)
-    input_batch = nlp.encode(aspect_spans)
+    tokenized_examples = nlp.tokenize(examples)
+    input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
-    aspect_span_labeled = nlp.label(aspect_spans, output_batch)
-    aspect_span_labeled = list(aspect_span_labeled)
-    labeled_1, labeled_2, labeled_3 = aspect_span_labeled
+    labeled_examples = nlp.label(tokenized_examples, output_batch)
+    labeled_examples = list(labeled_examples)
+    labeled_1, labeled_2, labeled_3 = labeled_examples
     assert labeled_1.sentiment == Sentiment.positive
     assert labeled_2.sentiment == Sentiment.negative
     assert isinstance(labeled_1.scores, list)
@@ -133,38 +138,38 @@ def test_label(nlp: BertPipeline):
 
 
 def test_evaluate(nlp: BertPipeline):
-    examples = load_classifier_examples(
+    examples = load_examples(
         dataset='semeval',
         domain='restaurant',
         test=True
     )
     metric = tf.metrics.Accuracy()
     result = nlp.evaluate(examples[:10], metric, batch_size=10)
+    result = result.numpy()
     # The model predicts the first 10 labels perfectly.
-    assert result.numpy() == 1
+    assert result == 1
     result = nlp.evaluate(examples[10:20], metric, batch_size=10)
-    assert np.isclose(result.numpy(), 0.95)
+    assert np.isclose(result, 0.95)
 
 
-def test_get_document_labeled(nlp: BertPipeline):
+def test_get_completed_task(nlp: BertPipeline):
     text = ("We are great fans of Slack.\n"
             "The Slack often has bugs.\n"
             "best of all is the warm vibe")
     # Make sure we have defined a text_splitter, even naive.
-    sentencizer = lambda text: text.split('\n')
-    nlp.sentencizer = sentencizer
+    nlp.text_splitter = lambda text: text.split('\n')
 
-    doc = nlp.get_document(text, aspects=['slack', 'price'])
-    aspect_spans = doc.batch
-    input_batch = nlp.encode(aspect_spans)
+    task = nlp.preprocess(text, aspects=['slack', 'price'])
+    tokenized_examples = task.batch
+    input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
-    aspect_span_labeled = nlp.label(aspect_spans, output_batch)
+    aspect_span_labeled = nlp.label(tokenized_examples, output_batch)
 
-    doc_labeled = nlp.get_document_labeled(doc, aspect_span_labeled)
-    assert len(doc_labeled.batch) == 6
-    assert doc_labeled.indices == [(0, 3), (3, 6)]
+    completed_task = nlp.get_completed_task(task, aspect_span_labeled)
+    assert len(completed_task.batch) == 6
+    assert completed_task.indices == [(0, 3), (3, 6)]
 
-    slack, price = doc_labeled
+    slack, price = completed_task
     assert slack.text == price.text == text
     # The sentiment among fragments are different. We normalize scores.
     assert np.allclose(slack.scores, [0.06, 0.46, 0.48], atol=0.01)

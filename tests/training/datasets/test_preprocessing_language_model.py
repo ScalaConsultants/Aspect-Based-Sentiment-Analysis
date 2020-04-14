@@ -16,7 +16,7 @@ def tokenizer() -> transformers.PreTrainedTokenizer:
 
 
 def test_examples_generator(tokenizer):
-    # Let's define a single document.
+    # Let's define a single task.
     doc = [f'This is an arbitrary sentence {i}.' for i in range(10)]
     document_store = mock.MagicMock()
     document_store.__iter__.return_value = iter([doc])
@@ -24,7 +24,7 @@ def test_examples_generator(tokenizer):
     document_store.sample_doc.return_value = random_doc
 
     # Turn off short_seq_prob. The batch_size does not play
-    # a role in generating examples.
+    # a role in generating example.
     dataset = LanguageModelDataset(document_store,
                                    batch_size=0,
                                    tokenizer=tokenizer,
@@ -35,7 +35,7 @@ def test_examples_generator(tokenizer):
     examples = list(generator)
 
     assert len(tokenizer.tokenize(doc[0])) == 7
-    # Each sentence in a document has 7 tokens, and our the max number of
+    # Each sentence in a task has 7 tokens, and our the max number of
     # tokens equals 10, so two segments is enough to build a valid tokens
     # pair. We can construct 5 pairs (in the case when the flag `is_next`
     # is true).

@@ -4,11 +4,9 @@ import pytest
 import transformers
 import numpy as np
 
+from aspect_based_sentiment_analysis import LabeledExample
 from aspect_based_sentiment_analysis import Sentiment
-from aspect_based_sentiment_analysis.training import (
-    ClassifierExample,
-    ClassifierDataset
-)
+from aspect_based_sentiment_analysis.training import ClassifierDataset
 np.random.seed(2)
 
 
@@ -18,12 +16,12 @@ def tokenizer() -> transformers.PreTrainedTokenizer:
 
 
 def test_preprocess_batch(tokenizer):
-    example_1 = ClassifierExample(
+    example_1 = LabeledExample(
         text='The breakfast was delicious, really great.',
         aspect='breakfast',
         sentiment=Sentiment.positive
     )
-    example_2 = ClassifierExample(
+    example_2 = LabeledExample(
         text='The hotel is expensive.',
         aspect='hotel',
         sentiment=Sentiment.negative

@@ -5,11 +5,12 @@ import tensorflow as tf
 
 from aspect_based_sentiment_analysis.training.datasets \
     import language_model_functions
-np.random.seed(1)
-tf.random.set_seed(1)
 
 
 def test_mask_tokens():
+    np.random.seed(1)
+    tf.random.set_seed(1)
+
     # Define encoded pairs of segments (batch_size, tokenizer_dim)
     vocabulary_len = 10
     batch_size = 32
@@ -55,4 +56,4 @@ def test_mask_tokens():
     target_to_predict = masked_targets != -100
     mask = masked_inputs[target_to_predict] == mask_token_id
     masked_target_ration = np.sum(mask) / np.sum(target_to_predict)
-    assert round(masked_target_ration, 2) == 0.79
+    assert round(masked_target_ration, 2) == 0.80
