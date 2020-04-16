@@ -9,12 +9,13 @@ from google.cloud.exceptions import NotFound
 
 from . import utils
 from .data_types import LabeledExample
+from .models import BertABSCConfig
 from .models import BertABSClassifier
 from .pipelines import BertPipeline
 from .pipelines import Pipeline
 from .probing import PatternRecognizer
 
-logger = logging.getLogger('absa.pipeline')
+logger = logging.getLogger('absa.load')
 ROOT_DIR = os.path.abspath(os.path.dirname(__file__))
 DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 
@@ -28,14 +29,8 @@ def load(
     """ Load ready to use pipelines. Files are stored on
     the HaggingFace AWS S3. """
     try:
-        # Force a model to output attentions and hidden states due to
-        # the fixed definition of the OutputBatch (the more strict interface).
-        model = BertABSClassifier.from_pretrained(
-            name,
-            output_attentions=True,
-            output_hidden_states=True,
-            **model_kwargs
-        )
+        config = BertABSCConfig.from_pretrained(name, **model_kwargs)
+        model = BertABSClassifier.from_pretrained(name, config=config)
         tokenizer = transformers.BertTokenizer.from_pretrained(name)
         nlp = BertPipeline(model, tokenizer, text_splitter, pattern_recognizer)
         return nlp
