@@ -33,11 +33,7 @@ def test_sanity_classifier():
     base_model_name = 'bert-base-uncased'
     strategy = tf.distribute.OneDeviceStrategy('CPU')
     with strategy.scope():
-        config = BertABSCConfig.from_pretrained(
-            base_model_name,
-            output_attentions=True,
-            output_hidden_states=True
-        )
+        config = BertABSCConfig.from_pretrained(base_model_name)
         model = BertABSClassifier.from_pretrained(base_model_name,
                                                   config=config)
         tokenizer = transformers.BertTokenizer.from_pretrained(base_model_name)

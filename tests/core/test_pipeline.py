@@ -24,11 +24,7 @@ def nlp() -> BertPipeline:
     # and it's why we use this well-defined pipeline fixture.
     name = 'absa/classifier-rest-0.1'
     tokenizer = transformers.BertTokenizer.from_pretrained(name)
-    model = BertABSClassifier.from_pretrained(
-        name,
-        output_attentions=True,
-        output_hidden_states=True
-    )
+    model = BertABSClassifier.from_pretrained(name)
     nlp = BertPipeline(model, tokenizer)
     return nlp
 

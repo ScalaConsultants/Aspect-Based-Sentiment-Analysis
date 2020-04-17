@@ -99,10 +99,10 @@ class ABSClassifier(tf.keras.Model, ABC):
 def force_to_return_details(kwargs: dict):
     """ Force a model to output attentions and hidden states due to the fixed
     definition of the output batch (the well-defined interface). """
-    condition = not kwargs['output_attentions'] or \
-                not kwargs['output_hidden_states']
+    condition = not kwargs.get('output_attentions', False) or \
+                not kwargs.get('output_hidden_states', False)
     if condition:
-        logger.warning('Model should output attentions and hidden states.')
+        logger.info('Model should output attentions and hidden states.')
     kwargs['output_attentions'] = True
     kwargs['output_hidden_states'] = True
 
