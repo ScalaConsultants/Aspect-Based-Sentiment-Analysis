@@ -182,6 +182,18 @@ Introduction to the BERT interpretability:
 [[code]](https://github.com/bhoov/exbert)[[paper]](http://arxiv.org/abs/1910.05276)
 - Does BERT Make Any Sense? Interpretable Word Sense Disambiguation with Contextualized Embeddings
 [[code]](https://github.com/uhh-lt/bert-sense)[[paper]](http://arxiv.org/abs/1909.10430)
+- Attention is not Explanation
+[[code]](https://github.com/successar/AttentionExplanation)[[paper]](https://arxiv.org/abs/1902.10186)
+- Attention is not not Explanation
+[[code]](https://github.com/sarahwie/attention)[[paper]](http://arxiv.org/abs/1908.04626)[[blog post]](https://medium.com/@yuvalpinter/attention-is-not-not-explanation-dbc25b534017)
+- Hierarchical interpretations for neural network predictions
+[[code]](https://github.com/csinva/hierarchical-dnn-interpretations)[[paper]](https://arxiv.org/abs/1806.05337)
+- Analysis Methods in Neural NLP
+[[code]](https://github.com/boknilev/nlp-analysis-methods)[[paper]](https://www.mitpressjournals.org/doi/pdf/10.1162/tacl_a_00254)
+- Visualization for Sequential Neural Networks with Attention
+[[code]](https://github.com/HendrikStrobelt/Seq2Seq-Vis)
+- NeuroX: Toolkit for finding and analyzing important neurons in neural networks
+[[code]](https://github.com/fdalvi/NeuroX)[[paper]](https://arxiv.org/abs/1812.09359)
 
 The State of the Art results:
 - A Multi-task Learning Model for Chinese-oriented Aspect Polarity Classification and Aspect Term Extraction
