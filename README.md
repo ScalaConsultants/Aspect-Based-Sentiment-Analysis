@@ -210,4 +210,8 @@ Other interesting:
 [[paper]](http://aclweb.org/anthology/W18-5444)
 - Master Thesis: Transfer and Multitask Learning for Aspect-Based Sentiment Analysis Using the Google Transformer Architecture
 [[code]](https://github.com/felixSchober/ABSA-Transformer)
+- Create interactive textual heat maps for Jupiter notebooks
+[[code]](https://github.com/AndreasMadsen/python-textualheatmap)
+- A pyTorch implementation of the DeepMoji model: state-of-the-art deep learning model for analyzing sentiment, emotion, sarcasm etc
+[[code]](https://github.com/huggingface/torchMoji)
 - More you can find [here](https://github.com/jiangqn/Aspect-Based-Sentiment-Analysis).
