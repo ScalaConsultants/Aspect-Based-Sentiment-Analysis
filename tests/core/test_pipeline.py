@@ -5,13 +5,14 @@ import tensorflow as tf
 
 from aspect_based_sentiment_analysis import (
     BertABSClassifier,
+    BertABSCConfig,
     BertPipeline,
     Sentiment,
     Example,
     load_examples
 )
 from aspect_based_sentiment_analysis.probing import (
-    AttentionPatternRecognizer
+    AttentionGradientProduct
 )
 np.random.seed(1)
 tf.random.set_seed(1)
@@ -24,7 +25,9 @@ def nlp() -> BertPipeline:
     # and it's why we use this well-defined pipeline fixture.
     name = 'absa/classifier-rest-0.1'
     tokenizer = transformers.BertTokenizer.from_pretrained(name)
-    model = BertABSClassifier.from_pretrained(name)
+    # We pass a config explicitly (however, it can be downloaded automatically)
+    config = BertABSCConfig.from_pretrained(name)
+    model = BertABSClassifier.from_pretrained(name, config=config)
     nlp = BertPipeline(model, tokenizer)
     return nlp
 
@@ -102,7 +105,7 @@ def test_predict(nlp: BertPipeline):
 
 def test_label(nlp: BertPipeline):
     # We add the pattern recognizer to the pipeline.
-    pattern_recognizer = AttentionPatternRecognizer()
+    pattern_recognizer = AttentionGradientProduct()
     nlp.pattern_recognizer = pattern_recognizer
 
     text_1 = ("We are great fans of Slack, but we wish the subscriptions "

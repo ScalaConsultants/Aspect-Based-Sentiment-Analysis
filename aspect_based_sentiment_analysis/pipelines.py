@@ -192,7 +192,7 @@ class Pipeline(ABC):
         """
         Label example using the detailed information about the prediction.
         The predicted example contains additional attributes such as the
-        sentiment and scores for each sentiment class. The aspect interest
+        sentiment and scores for each sentiment class. The aspect product
         and patterns are optional. They are if a pipeline has a **pattern
         recognizer**.
 

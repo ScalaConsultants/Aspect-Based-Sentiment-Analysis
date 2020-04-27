@@ -10,7 +10,7 @@ import aspect_based_sentiment_analysis as absa
 from aspect_based_sentiment_analysis import Example
 from aspect_based_sentiment_analysis import TokenizedExample
 from aspect_based_sentiment_analysis import utils
-from aspect_based_sentiment_analysis.probing import AttentionPatternRecognizer
+from aspect_based_sentiment_analysis.probing import AttentionGradientProduct
 
 
 @pytest.fixture
@@ -40,18 +40,18 @@ def test_integration(inputs):
     outputs = [tf.convert_to_tensor(o) for o in outputs]
     scores, *details = outputs
 
-    recognizer = AttentionPatternRecognizer(keep_key_weights=80)
+    recognizer = AttentionGradientProduct()
     aspect_repr, patterns = recognizer(example, *details)
 
     index = np.argmax(np.abs(aspect_repr.look_at))
     assert aspect_repr.tokens[index] == 'slack'
     tokens = np.array(aspect_repr.tokens)
     look_at = np.array(aspect_repr.look_at)
-    most_important = tokens[look_at != 0].tolist()
+    most_important = tokens[look_at > 0.2].tolist()
     assert most_important == ['great', 'fans', 'of', 'slack', '.']
 
     come_from = np.array(aspect_repr.come_from)
-    most_important = tokens[come_from != 0].tolist()
+    most_important = tokens[come_from > 0.4].tolist()
     assert most_important == ['great', 'fans', 'accessible', 'small']
 
     assert len(patterns) == 8
@@ -59,51 +59,36 @@ def test_integration(inputs):
     assert pattern_1.impact == 1
     weights = np.round(pattern_1.weights, decimals=2).tolist()
     assert weights[:6] == [0.14, 0.06, 0.24, 0.87, 0.09, 1.0]
-    assert np.allclose(weights[6:], 0)
 
 
-def test_get_interest():
-    recognizer = AttentionPatternRecognizer(keep_key_weights=80)
+def test_get_product():
+    recognizer = AttentionGradientProduct()
     tf.random.set_seed(1)
     attentions = tf.random.normal([10, 10, 3, 3])
     attention_grads = tf.random.normal([10, 10, 3, 3])
     # Calculate partial results here by the hand.
-    raw_interest = tf.reduce_sum(attentions * attention_grads, axis=(0, 1))
+    raw_product = tf.reduce_sum(attentions * attention_grads, axis=(0, 1))
+    raw_product = np.round(raw_product.numpy().tolist(), decimals=2).tolist()
 
-    # Check how test data looks like. We use two times the `tolist` method
-    # due to the floating point issues.
-    value = np.round(raw_interest.numpy().tolist(), decimals=2).tolist()
-    assert value == [[-0.12, -6.08, -9.42],
-                     [-11.29, -7.93, 7.31],
-                     [2.78, 9.1, 12.83]]
-
-    interest = recognizer.get_interest(attentions, attention_grads)
-    value = np.round(interest.tolist(), decimals=2).tolist()
-    assert value == [[0.0, 0.0, -9.42],
-                     [-11.29, -7.93, 7.31],
-                     [0.0, 9.1, 12.83]]
-
-    information = np.sum(np.abs(interest))
-    total_information = np.sum(np.abs(raw_interest))
-    ratio = information / total_information
-    assert np.isclose(ratio, 0.87, atol=0.01)
+    product = recognizer.get_product(attentions, attention_grads)
+    product = np.round(product.tolist(), decimals=2).tolist()
+    assert product == raw_product
 
 
 def test_get_patterns():
     def get_ratio(patterns):
         information = np.sum([p.weights for p in patterns])
-        weights = interest[[1, 2, 3, 4], :][:, [1, 2, 3, 4]]
+        weights = product[[1, 2, 3, 4], :][:, [1, 2, 3, 4]]
         weights = weights / weights.max()
         return information / np.sum(weights)
 
-    recognizer = AttentionPatternRecognizer(information_in_patterns=50)
+    recognizer = AttentionGradientProduct(information_in_patterns=50)
     example = mock.MagicMock()
-    example.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
-                          'SEP']
+    example.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test', 'SEP']
     example.text_tokens = ['this', 'is', 'a', 'test']
-    interest = np.arange(64).reshape([8, 8])
+    product = np.arange(64).reshape([8, 8])
 
-    patterns = recognizer.get_patterns(example, interest)
+    patterns = recognizer.get_patterns(example, product)
     pattern_1, pattern_2 = patterns
     assert pattern_1.tokens == pattern_2.tokens == ['this', 'is', 'a', 'test']
     assert np.abs(pattern_1.impact) == 1
@@ -113,21 +98,21 @@ def test_get_patterns():
                        atol=0.01)
     assert get_ratio(patterns) > 0.5
 
-    recognizer = AttentionPatternRecognizer(information_in_patterns=80)
-    patterns = recognizer.get_patterns(example, interest)
+    recognizer = AttentionGradientProduct(information_in_patterns=80)
+    patterns = recognizer.get_patterns(example, product)
     assert len(patterns) == 3
     assert 0.9 > get_ratio(patterns) > 0.8
 
 
 def test_get_aspect_representation():
-    recognizer = AttentionPatternRecognizer()
+    recognizer = AttentionGradientProduct()
     aspect_repr = mock.MagicMock()
     aspect_repr.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
                           'SEP']
     aspect_repr.text_tokens = ['this', 'is', 'a', 'test']
-    interest = np.arange(64).reshape([8, 8])
+    product = np.arange(64).reshape([8, 8])
 
-    aspect_pattern = recognizer.get_aspect_representation(aspect_repr, interest)
+    aspect_pattern = recognizer.get_aspect_representation(aspect_repr, product)
     assert aspect_pattern.tokens == ['this', 'is', 'a', 'test']
     assert np.allclose(aspect_pattern.come_from, [0.942, 0.962, 0.981, 1.0],
                        atol=0.01)
@@ -135,27 +120,8 @@ def test_get_aspect_representation():
                        atol=0.01)
 
 
-def test_mask_noise():
-    recognizer = AttentionPatternRecognizer  # Static method
-    interest = np.array([[1, -1, 5, 6],
-                         [2, -1, 2, 1],
-                         [0, -1, -5, 1]])
-
-    clean_interest = recognizer.mask_noise(interest, percentile=70)
-    assert clean_interest.tolist() == [[0, 0, 5, 6],
-                                       [2, 0, 2, 0],
-                                       [0, 0, -5, 0]]
-    magnitude = lambda x: np.sum(np.abs(x))
-    ratio = magnitude(clean_interest) / magnitude(interest)
-    assert round(ratio, 2) == 0.77
-
-    clean_interest = recognizer.mask_noise(interest, percentile=20)
-    ratio = magnitude(clean_interest) / magnitude(interest)
-    assert round(ratio, 2) == 0.23
-
-
 def test_get_indices():
-    recognizer = AttentionPatternRecognizer  # Static method
+    recognizer = AttentionGradientProduct  # Static method
     aspect_span = mock.MagicMock()
     aspect_span.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
                           'SEP']
@@ -166,18 +132,18 @@ def test_get_indices():
 
 
 def test_scale():
-    recognizer = AttentionPatternRecognizer  # Static method
-    interest = np.array([[1, -1, 5, 6],
+    recognizer = AttentionGradientProduct  # Static method
+    product = np.array([[1, -1, 5, 6],
                          [2, -1, 2, 1],
                          [0, -1, -5, 1]])
-    normalized = np.round(recognizer.scale(interest), decimals=2).tolist()
+    normalized = np.round(recognizer.scale(product), decimals=2).tolist()
     assert normalized == [[0.17, -0.17, 0.83, 1.0],
                           [0.33, -0.17, 0.33, 0.17],
                           [0.0, -0.17, -0.83, 0.17]]
 
 
 def test_get_key_mixtures():
-    recognizer = AttentionPatternRecognizer  # Static method
+    recognizer = AttentionGradientProduct  # Static method
     impacts = np.array([1, 2, 3])
     mixtures = np.arange(12).reshape(3, 4)
 
@@ -196,7 +162,7 @@ def test_get_key_mixtures():
 
 
 def test_construct_patterns():
-    recognizer = AttentionPatternRecognizer  # Static method
+    recognizer = AttentionGradientProduct  # Static method
     aspect_span = mock.MagicMock()
     impacts = [1, 2, 3]
     mixtures = np.arange(12).reshape(3, 4).tolist()
