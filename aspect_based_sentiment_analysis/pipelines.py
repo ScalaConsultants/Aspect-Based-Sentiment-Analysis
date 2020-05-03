@@ -298,7 +298,7 @@ class BertPipeline(Pipeline):
             # We assume that our predictions are correct. This is
             # required to calculate the attention gradients for
             # probing and exploratory purposes.
-            predictions = np.argmax(logits, axis=-1)
+            predictions = tf.argmax(logits, axis=-1)
             labels = tf.one_hot(predictions, depth=3)
             loss_value = classifier_loss(labels, logits)
         attention_grads = tape.gradient(loss_value, attentions)
