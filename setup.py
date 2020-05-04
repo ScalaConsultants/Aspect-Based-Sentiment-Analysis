@@ -31,7 +31,8 @@ setup(
         'ipython',
         'google-cloud-storage',
         'testfixtures',
-        'optuna'
+        'optuna',
+        'spacy'
     ],
     python_requires='~=3.7',
 )

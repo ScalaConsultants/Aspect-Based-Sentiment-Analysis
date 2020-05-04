@@ -5,6 +5,7 @@ dependencies:
   - scikit-learn=0.22
   - pytest=5.3
   - ipython=7.3
+  - spacy=2.4
   - pip:
     google-cloud-storage=1.26
     testfixtures=6.14
