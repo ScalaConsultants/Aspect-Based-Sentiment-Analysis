@@ -2,6 +2,7 @@ from functools import partial
 from typing import List
 from typing import Tuple
 
+import tensorflow as tf
 import transformers
 import numpy as np
 
@@ -11,7 +12,7 @@ from .data_types import TokenizedExample
 def tokenize(
         tokenizer: transformers.BertTokenizer,
         text: str,
-        aspect: str = None  # None for the experiment purposes.
+        aspect: str
 ) -> TokenizedExample:
     """ Tokenize the example, the pair of two raw strings (text, aspect).
     Moreover, we have to split tokens to subtokens using the **word-piece
@@ -28,17 +29,32 @@ def tokenize(
     tokens = cls + text_tokens + sep + aspect_tokens + sep \
         if aspect else cls + text_tokens + sep
 
+    aspect_subtokens = get_subtokens(wordpiece_tokenizer, aspect_tokens)
+    text_subtokens = get_subtokens(wordpiece_tokenizer, text_tokens)
     sub_tokens, alignment = make_alignment(wordpiece_tokenizer, tokens)
+
     example = TokenizedExample(
         text=text,
         text_tokens=text_tokens,
+        text_subtokens=text_subtokens,
         aspect=aspect,
         aspect_tokens=aspect_tokens,
+        aspect_subtokens=aspect_subtokens,
         tokens=tokens,
         subtokens=sub_tokens,
         alignment=alignment
     )
     return example
+
+
+def get_subtokens(
+        tokenizer: transformers.WordpieceTokenizer,
+        tokens: List[str]
+) -> List[str]:
+    """ Split tokens into subtokens according to the input format of the
+    language model. """
+    split = tokenizer.tokenize
+    return [sub_token for token in tokens for sub_token in split(token)]
 
 
 def make_alignment(
@@ -64,9 +80,9 @@ def make_alignment(
 
 
 def merge_input_attentions(
-        attentions: np.ndarray,
+        attentions: tf.Tensor,
         alignment: List[List[int]]
-) -> np.ndarray:
+) -> tf.Tensor:
     """ Merge input sub-token attentions into token attentions. """
 
     def aggregate(a, fun):
@@ -81,8 +97,10 @@ def merge_input_attentions(
     # of the attention weights over its tokens. Note, we switch aggregation
     # functions because if we go along the axis, the aggregation impacts to
     # orthogonal one.
+    attentions = attentions.numpy()
     attention_to = partial(aggregate, fun=np.mean)
     attentions = np.apply_along_axis(attention_to, 2, attentions)
     attention_from = partial(aggregate, fun=np.sum)
     attentions = np.apply_along_axis(attention_from, 3, attentions)
+    attentions = tf.convert_to_tensor(attentions)
     return attentions

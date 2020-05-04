@@ -45,8 +45,10 @@ class TokenizedExample:
     describe an aspect (one token). """
     text: str
     text_tokens: List[str]
+    text_subtokens: List[str]
     aspect: str
     aspect_tokens: List[str]
+    aspect_subtokens: List[str]
     tokens: List[str]
     subtokens: List[str]
     alignment: List[List[int]]
