@@ -11,7 +11,7 @@ from aspect_based_sentiment_analysis.training import (
 
 
 @pytest.fixture
-def tokenizer() -> transformers.PreTrainedTokenizer:
+def tokenizer() -> transformers.BertTokenizer:
     return transformers.BertTokenizer.from_pretrained('bert-base-uncased')
 
 
