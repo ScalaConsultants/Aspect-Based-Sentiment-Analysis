@@ -96,9 +96,9 @@ def test_predict(nlp: BertPipeline):
     input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
     assert output_batch.scores.shape == [2, 3]
-    assert output_batch.hidden_states.shape == [2, 13, 23, 768]
-    assert output_batch.attentions.shape == [2, 12, 12, 23, 23]
-    assert output_batch.attention_grads.shape == [2, 12, 12, 23, 23]
+    assert output_batch.hidden_states.shape == [2, 13, 25, 768]
+    assert output_batch.attentions.shape == [2, 12, 12, 25, 25]
+    assert output_batch.attention_grads.shape == [2, 12, 12, 25, 25]
     scores = output_batch.scores.numpy()
     assert np.argmax(scores, axis=-1).tolist() == [2, 2]
 

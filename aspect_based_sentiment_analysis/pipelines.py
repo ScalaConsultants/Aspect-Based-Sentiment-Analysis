@@ -272,7 +272,7 @@ class BertPipeline(Pipeline):
         return examples
 
     def encode(self, examples: List[TokenizedExample]) -> InputBatch:
-        token_pairs = [(e.text_tokens, e.aspect_tokens) for e in examples]
+        token_pairs = [(e.text_subtokens, e.aspect_subtokens) for e in examples]
         encoded = self.tokenizer.batch_encode_plus(
             token_pairs,
             add_special_tokens=True,
@@ -330,12 +330,22 @@ class BertPipeline(Pipeline):
     ) -> Iterable[PredictedExample]:
         sentiment_ids = np.argmax(output_batch.scores, axis=-1).astype(int)
         for i, example in enumerate(examples):
+            # Rather than operating on subtokens, we use tokens. To get them,
+            # we need to merge subtokens according to the alignment.
+            attentions = alignment.merge_input_attentions(
+                output_batch.attentions[i],
+                alignment=example.alignment
+            )
+            attention_grads = alignment.merge_input_attentions(
+                output_batch.attention_grads[i],
+                alignment=example.alignment
+            )
             sentiment_id = sentiment_ids[i]
             aspect_representation, patterns = self.pattern_recognizer(
                 example=example,
                 hidden_states=output_batch.hidden_states[i],
-                attentions=output_batch.attentions[i],
-                attention_grads=output_batch.attention_grads[i]
+                attentions=attentions,
+                attention_grads=attention_grads,
             ) if self.pattern_recognizer else (None, None)
             kwargs = asdict(example)
             predicted_example = PredictedExample(
