@@ -60,6 +60,7 @@ class AttentionGradientProduct(PatternRecognizer):
             attentions: tf.Tensor,
             attention_grads: tf.Tensor
     ) -> Tuple[AspectRepresentation, List[Pattern]]:
+        self.input_validation(example, attentions, attention_grads)
         product = self.get_product(attentions, attention_grads)
         patterns = self.get_patterns(example, product)
         aspect = self.get_aspect_representation(example, product)
@@ -121,6 +122,21 @@ class AttentionGradientProduct(PatternRecognizer):
         aspect_representation = AspectRepresentation(
             example.text_tokens, come_from, look_at)
         return aspect_representation
+
+    @staticmethod
+    def input_validation(
+            example: TokenizedExample,
+            attentions: tf.Tensor,
+            attention_grads: tf.Tensor
+    ):
+        """ We need to merge sub-token attention and attention gradients
+        before passing them to the recognizer. Because sub_tokens are model
+        dependent and more implicit, we operate on tokens instead. """
+        n = len(example.tokens)
+        *_, i = attentions.shape
+        *_, j = attention_grads.shape
+        if n != i or n != j:
+            raise ValueError
 
     @staticmethod
     def get_indices(example: TokenizedExample) -> Tuple[int, List[int], int]:

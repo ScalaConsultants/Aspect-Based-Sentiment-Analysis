@@ -1,21 +1,17 @@
 from unittest import mock
-from dataclasses import asdict
-from dataclasses import astuple
 
 import numpy as np
 import pytest
 import tensorflow as tf
 
 import aspect_based_sentiment_analysis as absa
+from aspect_based_sentiment_analysis import alignment
 from aspect_based_sentiment_analysis import Example
-from aspect_based_sentiment_analysis import TokenizedExample
-from aspect_based_sentiment_analysis import utils
 from aspect_based_sentiment_analysis.probing import AttentionGradientProduct
 
 
 @pytest.fixture
-@utils.cache_fixture
-def inputs(request):  # The cache function uses the `request` parameter.
+def inputs():
     nlp = absa.load('absa/classifier-rest-0.1')
     text = ("We are great fans of Slack, but we wish the subscriptions "
             "were more accessible to small startups.")
@@ -24,41 +20,45 @@ def inputs(request):  # The cache function uses the `request` parameter.
     tokenized_examples = nlp.tokenize(examples=[example])
     input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
-    outputs = [tensor[0] for tensor in astuple(output_batch)]
 
-    # Covert the tokenized example and EagerTensor's to the native python
-    # objects to facilitate the serialization process.
     tokenized_example = tokenized_examples[0]
-    example_dict = asdict(tokenized_example)
-    model_outputs_native = [tensor.numpy().tolist() for tensor in outputs]
-    return example_dict, model_outputs_native
+    attentions = alignment.merge_input_attentions(
+        output_batch.attentions[0],
+        alignment=tokenized_example.alignment
+    )
+    attention_grads = alignment.merge_input_attentions(
+        output_batch.attention_grads[0],
+        alignment=tokenized_example.alignment
+    )
+    return tokenized_example, attentions, attention_grads
 
 
 def test_integration(inputs):
-    example_dict, outputs = inputs
-    example = TokenizedExample(**example_dict)
-    outputs = [tf.convert_to_tensor(o) for o in outputs]
-    scores, *details = outputs
-
+    tokenized_example, attentions, attention_grads = inputs
     recognizer = AttentionGradientProduct()
-    aspect_repr, patterns = recognizer(example, *details)
+    aspect_repr, patterns = recognizer(
+        example=tokenized_example,
+        attentions=attentions,
+        attention_grads=attention_grads,
+        hidden_states=None  # It's unnecessary for this pattern recognizer.
+    )
 
     index = np.argmax(np.abs(aspect_repr.look_at))
     assert aspect_repr.tokens[index] == 'slack'
     tokens = np.array(aspect_repr.tokens)
     look_at = np.array(aspect_repr.look_at)
     most_important = tokens[look_at > 0.2].tolist()
-    assert most_important == ['great', 'fans', 'of', 'slack', '.']
+    assert most_important == ['fans', 'slack', '.']
 
     come_from = np.array(aspect_repr.come_from)
-    most_important = tokens[come_from > 0.4].tolist()
-    assert most_important == ['great', 'fans', 'accessible', 'small']
+    most_important = tokens[come_from > 0.7].tolist()
+    assert most_important == ['fans', 'slack', 'startups']
 
     assert len(patterns) == 8
     pattern_1, *_ = patterns
-    assert pattern_1.impact == 1
+    assert np.isclose(pattern_1.impact, 1)
     weights = np.round(pattern_1.weights, decimals=2).tolist()
-    assert weights[:6] == [0.14, 0.06, 0.24, 0.87, 0.09, 1.0]
+    assert weights[:6] == [0.12, 0.06, 0.24, 0.78, 0.09, 1.0]
 
 
 def test_get_product():
@@ -118,6 +118,18 @@ def test_get_aspect_representation():
                        atol=0.01)
     assert np.allclose(aspect_pattern.look_at, [0.368, 0.579, 0.789, 1.0],
                        atol=0.01)
+
+
+def test_input_validation():
+    recognizer = AttentionGradientProduct  # Static method
+    example = mock.MagicMock()
+    example.tokens.__len__.return_value = 7
+    attentions = attention_grads = tf.zeros([12, 12, 7, 7])
+    recognizer.input_validation(example, attentions, attention_grads)
+
+    with pytest.raises(ValueError) as info:
+        attentions = attention_grads = tf.zeros([12, 12, 10, 10])
+        recognizer.input_validation(example, attentions, attention_grads)
 
 
 def test_get_indices():
