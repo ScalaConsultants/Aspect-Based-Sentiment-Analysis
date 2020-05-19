@@ -77,6 +77,19 @@ class AttentionGradientProduct(PatternRecognizer):
         product = np.sum(product, axis=(0, 1))
         return product
 
+    @staticmethod
+    def get_impacts(
+            cls_id: int,
+            text_ids: List[int],
+            product: np.ndarray
+    ) -> np.array:
+        # Note that the gradient comes from the loss function, and it is why
+        # we have to change the sign to get a direction of the improvement.
+        # We expect the positive gradients for
+        impacts = product[cls_id, text_ids] * -1
+        impacts = AttentionGradientProduct.scale(impacts)
+        return impacts
+
     def get_patterns(
             self,
             example: TokenizedExample,
@@ -92,11 +105,8 @@ class AttentionGradientProduct(PatternRecognizer):
         prediction on average. The approximation of these word `mixtures` are
         rows of the product matrix. Select only key patterns. """
         cls_id, text_ids, aspect_id = self.get_indices(example)
-        # Note that the gradient comes from the loss function, and it is why
-        # we have to change the sign to get a direction of the improvement.
-        impacts = product[cls_id, text_ids] * -1
+        impacts = self.get_impacts(cls_id, text_ids, product)
         mixtures = np.abs(product[text_ids, :][:, text_ids])
-        impacts = self.scale(impacts)
         mixtures = self.scale(mixtures)
         key_impacts, key_mixtures = self.get_key_mixtures(
             impacts, mixtures, percentile=self.information_in_patterns)
@@ -136,6 +146,8 @@ class AttentionGradientProduct(PatternRecognizer):
         *_, i = attentions.shape
         *_, j = attention_grads.shape
         if n != i or n != j:
+            raise ValueError
+        if len(example.aspect_tokens) > 1:
             raise ValueError
 
     @staticmethod
