@@ -330,23 +330,30 @@ class BertPipeline(Pipeline):
     ) -> Iterable[PredictedExample]:
         sentiment_ids = np.argmax(output_batch.scores, axis=-1).astype(int)
         for i, example in enumerate(examples):
-            # Rather than operating on subtokens, we use tokens. To get them,
-            # we need to merge subtokens according to the alignment.
-            attentions = alignment.merge_input_attentions(
-                output_batch.attentions[i],
-                alignment=example.alignment
-            )
-            attention_grads = alignment.merge_input_attentions(
-                output_batch.attention_grads[i],
-                alignment=example.alignment
-            )
             sentiment_id = sentiment_ids[i]
-            aspect_representation, patterns = self.pattern_recognizer(
-                example=example,
-                hidden_states=output_batch.hidden_states[i],
-                attentions=attentions,
-                attention_grads=attention_grads,
-            ) if self.pattern_recognizer else (None, None)
+
+            if self.pattern_recognizer:
+                # Rather than operating on subtokens, we use tokens. To get
+                # them, we need to merge subtokens according to the alignment.
+                attentions = alignment.merge_input_attentions(
+                    output_batch.attentions[i],
+                    alignment=example.alignment,
+                    reduce=True
+                )
+                attention_grads = alignment.merge_input_attentions(
+                    output_batch.attention_grads[i],
+                    alignment=example.alignment,
+                    reduce=True
+                )
+                aspect_representation, patterns = self.pattern_recognizer(
+                    example=example,
+                    hidden_states=output_batch.hidden_states[i],
+                    attentions=attentions,
+                    attention_grads=attention_grads,
+                )
+            else:
+                aspect_representation, patterns = None, None
+
             kwargs = asdict(example)
             predicted_example = PredictedExample(
                 sentiment=Sentiment(sentiment_id),
