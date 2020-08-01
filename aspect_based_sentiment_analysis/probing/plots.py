@@ -36,9 +36,9 @@ def highlight_sequence(
 
 
 def highlight_pattern(pattern: Pattern) -> str:
-    rgb = (117, 255, 104) if pattern.impact >= 0 else (250, 102, 109)
-    weight = pattern.impact
-    html_impact = highlight(f'impact {weight:.2f}', np.abs(weight), rgb=rgb)
+    rgb = (117, 255, 104) if pattern.importance >= 0 else (250, 102, 109)
+    w = pattern.importance
+    html_impact = highlight(f'impact {w:.2f}', np.abs(w), rgb=rgb)
     html_patterns = highlight_sequence(pattern.tokens, pattern.weights)
     highlighted_text = [html_impact, *html_patterns]
     highlighted_text = ' '.join(highlighted_text)

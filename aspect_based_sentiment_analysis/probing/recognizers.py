@@ -60,6 +60,28 @@ class AttentionGradientProduct(PatternRecognizer):
             attentions: tf.Tensor,
             attention_grads: tf.Tensor
     ) -> Tuple[AspectRepresentation, List[Pattern]]:
+        # TODO: Re-implementation
+        # cls_id, text_ids, aspect_id = self.get_indices(example)
+        #
+        # threshold = 0.05
+        # round_decimals = 2
+        #
+        # product = attentions * attention_grads
+        # product = tf.abs(product)
+        # product = tf.reduce_sum(product, axis=(0, 1))
+        # # ... alignment
+        # product = product.numpy()
+        #
+        # w = product[cls_id, text_ids]
+        # w /= np.max(w + 1e-9)
+        #
+        # mixtures = product[text_ids, :][:, text_ids]
+        # mixtures /= np.max(mixtures + 1e-9, axis=1).reshape(-1, 1)
+        # np.fill_diagonal(mixtures, 1)
+        # mixtures *= w.reshape(-1, 1)
+        #
+        # mixtures = np.where(mixtures > threshold, mixtures, 0)
+        # mixtures = np.round(mixtures, decimals=round_decimals)
         self.input_validation(example, attentions, attention_grads)
         product = self.get_product(attentions, attention_grads)
         patterns = self.get_patterns(example, product)
@@ -101,7 +123,7 @@ class AttentionGradientProduct(PatternRecognizer):
         transformer's layers, the model creates contextual word embeddings,
         which we can interpret as the word mixtures. Because of the `product`
         includes a gradient part, the first row represents how particular
-        mixtures, not words, of the class token representation impact to the
+        mixtures, not words, of the class token representation importance to the
         prediction on average. The approximation of these word `mixtures` are
         rows of the product matrix. Select only key patterns. """
         cls_id, text_ids, aspect_id = self.get_indices(example)

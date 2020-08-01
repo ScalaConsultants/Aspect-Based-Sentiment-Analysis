@@ -58,8 +58,8 @@ class TokenizedExample:
 class Pattern:
     """ The weighted tokens describe the pattern. The pattern
     is an elementary tool to explain the model reasoning. Each
-    pattern has a different `impact` to the final prediction. """
-    impact: float
+    pattern has a different `importance` to the final prediction. """
+    importance: float
     tokens: List[str]
     weights: List[float]
 

@@ -56,7 +56,7 @@ def test_integration(inputs):
 
     assert len(patterns) == 8
     pattern_1, *_ = patterns
-    assert np.isclose(pattern_1.impact, 1)
+    assert np.isclose(pattern_1.importance, 1)
     weights = np.round(pattern_1.weights, decimals=2).tolist()
     assert weights[:6] == [0.12, 0.06, 0.24, 0.78, 0.09, 1.0]
 
@@ -91,9 +91,9 @@ def test_get_patterns():
     patterns = recognizer.get_patterns(example, product)
     pattern_1, pattern_2 = patterns
     assert pattern_1.tokens == pattern_2.tokens == ['this', 'is', 'a', 'test']
-    assert np.abs(pattern_1.impact) == 1
+    assert np.abs(pattern_1.importance) == 1
     assert np.allclose(pattern_1.weights, [0.917, 0.944, 0.972, 1.0], atol=0.01)
-    assert np.abs(pattern_2.impact) == 0.75
+    assert np.abs(pattern_2.importance) == 0.75
     assert np.allclose(pattern_2.weights, [0.694, 0.722, 0.75, 0.778],
                        atol=0.01)
     assert get_ratio(patterns) > 0.5
@@ -181,5 +181,5 @@ def test_construct_patterns():
     patterns = recognizer.construct_patterns(aspect_span, impacts, mixtures)
     assert len(patterns) == 3
     pattern_1, pattern_2, pattern_3 = patterns
-    assert pattern_2.impact == 2
+    assert pattern_2.importance == 2
     assert pattern_2.weights == [4, 5, 6, 7]

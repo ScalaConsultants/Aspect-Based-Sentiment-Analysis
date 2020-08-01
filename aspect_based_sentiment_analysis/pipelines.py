@@ -57,7 +57,7 @@ class Pipeline(ABC):
     concerns the different entities. Secondly, even if the model recognized
     the aspect correctly, we wish to understand the model reasoning better.
     To do so, the pattern recognizer discovers patterns, a weighted sequence
-    of words, and their approximated impact to the prediction. We want to
+    of words, and their approximated importance to the prediction. We want to
     avoid a situation wherein a single word or weird word combination
     triggers the model.
 
