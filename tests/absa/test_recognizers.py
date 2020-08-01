@@ -5,9 +5,11 @@ import pytest
 import tensorflow as tf
 
 import aspect_based_sentiment_analysis as absa
-from aspect_based_sentiment_analysis import alignment
-from aspect_based_sentiment_analysis import Example
-from aspect_based_sentiment_analysis.probing import AttentionGradientProduct
+from aspect_based_sentiment_analysis import (
+    alignment,
+    recognizers,
+    Example
+)
 
 
 @pytest.fixture
@@ -35,7 +37,7 @@ def inputs():
 
 def test_integration(inputs):
     tokenized_example, attentions, attention_grads = inputs
-    recognizer = AttentionGradientProduct()
+    recognizer = recognizers.AttentionGradientProduct()
     aspect_repr, patterns = recognizer(
         example=tokenized_example,
         attentions=attentions,
@@ -62,7 +64,7 @@ def test_integration(inputs):
 
 
 def test_get_product():
-    recognizer = AttentionGradientProduct()
+    recognizer = recognizers.AttentionGradientProduct()
     tf.random.set_seed(1)
     attentions = tf.random.normal([10, 10, 3, 3])
     attention_grads = tf.random.normal([10, 10, 3, 3])
@@ -82,7 +84,8 @@ def test_get_patterns():
         weights = weights / weights.max()
         return information / np.sum(weights)
 
-    recognizer = AttentionGradientProduct(information_in_patterns=50)
+    recognizer = recognizers.AttentionGradientProduct(
+        information_in_patterns=50)
     example = mock.MagicMock()
     example.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test', 'SEP']
     example.text_tokens = ['this', 'is', 'a', 'test']
@@ -98,14 +101,15 @@ def test_get_patterns():
                        atol=0.01)
     assert get_ratio(patterns) > 0.5
 
-    recognizer = AttentionGradientProduct(information_in_patterns=80)
+    recognizer = recognizers.AttentionGradientProduct(
+        information_in_patterns=80)
     patterns = recognizer.get_patterns(example, product)
     assert len(patterns) == 3
     assert 0.9 > get_ratio(patterns) > 0.8
 
 
 def test_get_aspect_representation():
-    recognizer = AttentionGradientProduct()
+    recognizer = recognizers.AttentionGradientProduct()
     aspect_repr = mock.MagicMock()
     aspect_repr.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
                           'SEP']
@@ -121,7 +125,7 @@ def test_get_aspect_representation():
 
 
 def test_input_validation():
-    recognizer = AttentionGradientProduct  # Static method
+    recognizer = recognizers.AttentionGradientProduct  # Static method
     example = mock.MagicMock()
     example.tokens.__len__.return_value = 7
     attentions = attention_grads = tf.zeros([12, 12, 7, 7])
@@ -133,7 +137,7 @@ def test_input_validation():
 
 
 def test_get_indices():
-    recognizer = AttentionGradientProduct  # Static method
+    recognizer = recognizers.AttentionGradientProduct  # Static method
     aspect_span = mock.MagicMock()
     aspect_span.tokens = ['CLS', 'this', 'is', 'a', 'test', 'SEP', 'test',
                           'SEP']
@@ -144,10 +148,10 @@ def test_get_indices():
 
 
 def test_scale():
-    recognizer = AttentionGradientProduct  # Static method
+    recognizer = recognizers.AttentionGradientProduct  # Static method
     product = np.array([[1, -1, 5, 6],
-                         [2, -1, 2, 1],
-                         [0, -1, -5, 1]])
+                        [2, -1, 2, 1],
+                        [0, -1, -5, 1]])
     normalized = np.round(recognizer.scale(product), decimals=2).tolist()
     assert normalized == [[0.17, -0.17, 0.83, 1.0],
                           [0.33, -0.17, 0.33, 0.17],
@@ -155,7 +159,7 @@ def test_scale():
 
 
 def test_get_key_mixtures():
-    recognizer = AttentionGradientProduct  # Static method
+    recognizer = recognizers.AttentionGradientProduct  # Static method
     impacts = np.array([1, 2, 3])
     mixtures = np.arange(12).reshape(3, 4)
 
@@ -174,7 +178,7 @@ def test_get_key_mixtures():
 
 
 def test_construct_patterns():
-    recognizer = AttentionGradientProduct  # Static method
+    recognizer = recognizers.AttentionGradientProduct  # Static method
     aspect_span = mock.MagicMock()
     impacts = [1, 2, 3]
     mixtures = np.arange(12).reshape(3, 4).tolist()

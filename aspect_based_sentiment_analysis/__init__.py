@@ -30,7 +30,10 @@ from .pipelines import BertPipeline
 
 from .text_splitters import sentencizer
 
+from . import plots
+from .plots import explain
+
 from . import training
-from . import probing
+from . import recognizers
 from . import text_splitters
 from . import utils

@@ -7,7 +7,7 @@ from aspect_based_sentiment_analysis.training import ConfusionMatrix
 @pytest.fixture
 def nlp() -> absa.Pipeline:
     sentencier = absa.sentencizer()
-    recognizer = absa.probing.AttentionGradientProduct()
+    recognizer = absa.recognizers.AttentionGradientProduct()
     nlp = absa.load(text_splitter=sentencier, pattern_recognizer=recognizer)
     return nlp
 

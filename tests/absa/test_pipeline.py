@@ -9,10 +9,8 @@ from aspect_based_sentiment_analysis import (
     BertPipeline,
     Sentiment,
     Example,
-    load_examples
-)
-from aspect_based_sentiment_analysis.probing import (
-    AttentionGradientProduct
+    load_examples,
+    recognizers
 )
 np.random.seed(1)
 tf.random.set_seed(1)
@@ -105,7 +103,7 @@ def test_predict(nlp: BertPipeline):
 
 def test_label(nlp: BertPipeline):
     # We add the pattern recognizer to the pipeline.
-    pattern_recognizer = AttentionGradientProduct()
+    pattern_recognizer = recognizers.AttentionGradientProduct()
     nlp.pattern_recognizer = pattern_recognizer
 
     text_1 = ("We are great fans of Slack, but we wish the subscriptions "
