@@ -3,8 +3,8 @@ from typing import List
 from typing import Tuple
 import numpy as np
 from IPython.core.display import HTML
-from ..data_types import PredictedExample
-from ..data_types import Pattern
+from .data_types import PredictedExample
+from .data_types import Pattern
 
 
 def html_escape(text):

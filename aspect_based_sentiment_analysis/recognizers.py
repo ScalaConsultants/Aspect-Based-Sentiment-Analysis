@@ -7,9 +7,9 @@ from typing import Tuple
 import numpy as np
 import tensorflow as tf
 
-from ..data_types import TokenizedExample
-from ..data_types import AspectRepresentation
-from ..data_types import Pattern
+from .data_types import TokenizedExample
+from .data_types import AspectRepresentation
+from .data_types import Pattern
 
 
 class PatternRecognizer(ABC):

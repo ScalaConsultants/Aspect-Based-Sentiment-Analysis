@@ -38,7 +38,7 @@ class Pipeline(ABC):
     Classifier. The aim is to classify the sentiment of a potentially long
     text for several aspects. Furthermore, the pipeline gives the reasons for
     a decision, so we can infer how much results are reliable. For the basic
-    core, you benefit from the `__call__` method.
+    absa, you benefit from the `__call__` method.
 
     We made two important design decisions. Firstly, even some research
     presents how to predict several aspects at once, we process aspects
@@ -74,7 +74,7 @@ class Pipeline(ABC):
     @abstractmethod
     def __call__(self, text: str, aspects: List[str]) -> CompletedTask:
         """
-        The __call__ method is for the basic core. The pipeline
+        The __call__ method is for the basic absa. The pipeline
         performs several clear transformations:
             - convert text and aspects into the task:
               the form of well-prepared tokenized example,

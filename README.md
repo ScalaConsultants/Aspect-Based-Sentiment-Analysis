@@ -90,7 +90,7 @@ Basically, they represent different combinations of weighted words: great, fans,
 The patterns in the second group (marked as red) disagree with a decision.
 Interestingly, the model recognizes the complex structure like "wish ... more".
 Please note that this analysis is a rough approximation.
-Take a look at the details [here](aspect_based_sentiment_analysis/probing/recognizers.py).
+Take a look at the details [here](aspect_based_sentiment_analysis/recognizers.py).
 
 <br>
 
