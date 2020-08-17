@@ -4,7 +4,7 @@ from abc import abstractmethod
 from collections import OrderedDict
 from dataclasses import asdict
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Union
 from typing import Iterable
 from typing import List
 
@@ -25,14 +25,14 @@ from .data_types import OutputBatch
 from .data_types import Sentiment
 from .models import ABSClassifier
 from .models import BertABSClassifier
-from .probing import PatternRecognizer
 from .training import classifier_loss
+from .professors import Professor, Review
 
 logger = logging.getLogger('absa.pipeline')
 
 
 @dataclass
-class Pipeline(ABC):
+class _Pipeline(ABC):
     """
     The pipeline simplifies the use of the fine-tuned Aspect-Based Sentiment
     Classifier. The aim is to classify the sentiment of a potentially long
@@ -236,23 +236,39 @@ class Pipeline(ABC):
 
 
 @dataclass
-class BertPipeline(Pipeline):
+class Pipeline(_Pipeline):  # TODO
     model: BertABSClassifier
     tokenizer: transformers.BertTokenizer
+    professor: Professor = None
     text_splitter: Callable[[str], List[str]] = None
-    pattern_recognizer: PatternRecognizer = None
 
     def __call__(
             self,
             text: str,
             aspects: List[str]
+    ) -> Union[PredictedExample, CompletedSubTask, CompletedTask]:  # TODO
+        completed_task = self.transform(text, aspects)
+        if len(aspects) == 1:
+            completed_subtask, = completed_task
+
+            if len(completed_subtask) == 1:
+                predicted_example, = completed_subtask
+
+                return predicted_example
+            return completed_subtask
+        return completed_task
+
+    def transform(
+            self,
+            text: str,
+            aspects: List[str]
     ) -> CompletedTask:
         task = self.preprocess(text, aspects)
-        tokenized_examples = task.batch
-        input_batch = self.encode(tokenized_examples)
+        input_batch = self.encode(task.tokenized_examples)
         output_batch = self.predict(input_batch)
-        predicted_examples = self.label(tokenized_examples, output_batch)
-        completed_task = self.get_completed_task(task, predicted_examples)
+        reviews = self.professor.review(task, output_batch) \
+            if self.professor else None
+        completed_task = self.postprocess(task, output_batch, reviews)
         return completed_task
 
     def preprocess(self, text: str, aspects: List[str]) -> Task:
@@ -323,43 +339,21 @@ class BertPipeline(Pipeline):
         )
         return output_batch
 
-    def label(
-            self,
+    @staticmethod
+    def postprocess(
             examples: List[TokenizedExample],
-            output_batch: OutputBatch
+            output_batch: OutputBatch,
+            reviews: List[Review] = None
     ) -> Iterable[PredictedExample]:
+        # TODO: get completed task
         sentiment_ids = np.argmax(output_batch.scores, axis=-1).astype(int)
         for i, example in enumerate(examples):
             sentiment_id = sentiment_ids[i]
-
-            if self.pattern_recognizer:
-                # Rather than operating on subtokens, we use tokens. To get
-                # them, we need to merge subtokens according to the alignment.
-                attentions = alignment.merge_input_attentions(
-                    output_batch.attentions[i],
-                    alignment=example.alignment,
-                    reduce=True
-                )
-                attention_grads = alignment.merge_input_attentions(
-                    output_batch.attention_grads[i],
-                    alignment=example.alignment,
-                    reduce=True
-                )
-                aspect_representation, patterns = self.pattern_recognizer(
-                    example=example,
-                    hidden_states=output_batch.hidden_states[i],
-                    attentions=attentions,
-                    attention_grads=attention_grads,
-                )
-            else:
-                aspect_representation, patterns = None, None
-
             kwargs = asdict(example)
             predicted_example = PredictedExample(
                 sentiment=Sentiment(sentiment_id),
                 scores=output_batch.scores[i].numpy().tolist(),
-                aspect_representation=aspect_representation,
-                patterns=patterns,
+                review=next(reviews),
                 **kwargs
             )
             yield predicted_example
