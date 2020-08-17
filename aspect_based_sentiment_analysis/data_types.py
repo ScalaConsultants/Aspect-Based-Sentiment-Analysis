@@ -1,5 +1,5 @@
 from enum import IntEnum
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Dict
 from typing import OrderedDict
 from typing import Iterable
@@ -65,17 +65,10 @@ class Pattern:
 
 
 @dataclass(frozen=True)
-class AspectRepresentation:
-    """ The aspect representation contains two special patterns
-    related to the aspect. Firstly, the `come_from` weights
-    describe the aspect final representation. They tend to be
-    sort of nominal modifiers. Secondly, the `look_at` weights
-    describe how the aspect affects different words. These
-    weights seem to indicates words which show coreference
-    to the aspect. """
-    tokens: List[str]
-    come_from: List[float]
-    look_at: List[float]
+class Review:
+    """ """
+    is_reference: bool = None
+    patterns: List[Pattern] = None
 
 
 @dataclass(frozen=True)
@@ -85,12 +78,15 @@ class PredictedExample(TokenizedExample, LabeledExample):
     representation and patterns are optional. They are if
     a pipeline has a pattern recognizer. """
     scores: List[float]
-    aspect_representation: AspectRepresentation = None
-    patterns: List[Pattern] = None
+    review: Review = None
+
+    @classmethod
+    def from_example(cls, example: TokenizedExample, **kwargs):
+        return cls(**asdict(example), **kwargs)
 
 
 @dataclass(frozen=True)
-class SubTask:
+class SubTask:  # TODO: maybe Document
     """ The subtask is to classify the sentiment of a
     potentially long text for a single aspect. In contrast to
     convert the pair of two strings (text, aspect) into the
@@ -117,6 +113,7 @@ class CompletedSubTask(SubTask):
     examples: List[PredictedExample]
     sentiment: Sentiment
     scores: List[float]
+    # TODO: maybe without an average?
 
 
 @dataclass(frozen=True)
