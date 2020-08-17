@@ -119,11 +119,10 @@ class BertABSClassifier(ABSClassifier, transformers.TFBertPreTrainedModel):
 
     def __init__(self, config: BertABSCConfig, **kwargs):
         super().__init__(config, **kwargs)
-        LM = transformers.TFBertForPreTraining
-        self.language_model = LM(config, name='language_model')
+        self.bert = transformers.TFBertMainLayer(
+            config, name="bert")
         initializer = transformers.modeling_tf_utils.get_initializer(
-            config.initializer_range
-        )
+            config.initializer_range)
         self.dropout = layers.Dropout(config.hidden_dropout_prob)
         self.classifier = layers.Dense(
             config.num_polarities,
@@ -139,7 +138,7 @@ class BertABSClassifier(ABSClassifier, transformers.TFBertPreTrainedModel):
             training: bool = False,
             **bert_kwargs
     ) -> Tuple[tf.Tensor, Tuple[tf.Tensor, ...], Tuple[tf.Tensor, ...]]:
-        outputs = self.language_model.bert(
+        outputs = self.bert(
             inputs=token_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
