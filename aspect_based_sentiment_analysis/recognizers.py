@@ -63,13 +63,24 @@ class AttentionGradientProduct(PatternRecognizer):
         # TODO: Re-implementation
         # cls_id, text_ids, aspect_id = self.get_indices(example)
         #
+        # attentions = alignment.merge_input_attentions(
+        #     output_batch.attentions[i],
+        #     alignment=example.alignment,
+        #     reduce=True
+        # )
+        # attention_grads = alignment.merge_input_attentions(
+        #     attention_grads,
+        #     alignment=example.alignment,
+        #     reduce=True
+        # )
         # threshold = 0.05
         # round_decimals = 2
         #
         # product = attentions * attention_grads
         # product = tf.abs(product)
         # product = tf.reduce_sum(product, axis=(0, 1))
-        # # ... alignment
+        # attention_grads = alignment.merge_input(
+        #     product, alignment=example.alignment)
         # product = product.numpy()
         #
         # w = product[cls_id, text_ids]
