@@ -215,3 +215,5 @@ Other interesting:
 - A pyTorch implementation of the DeepMoji model: state-of-the-art deep learning model for analyzing sentiment, emotion, sarcasm etc
 [[code]](https://github.com/huggingface/torchMoji)
 - More you can find [here](https://github.com/jiangqn/Aspect-Based-Sentiment-Analysis).
+
+Developed by [Scalac](https://scalac.io/?utm_source=scalac_github&utm_campaign=scalac1&utm_medium=web)
