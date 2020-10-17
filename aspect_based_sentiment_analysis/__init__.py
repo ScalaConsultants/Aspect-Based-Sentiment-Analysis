@@ -31,7 +31,7 @@ from .pipelines import BertPipeline
 from .text_splitters import sentencizer
 
 from . import plots
-from .plots import explain
+from .plots import display
 
 from . import training
 from . import recognizers

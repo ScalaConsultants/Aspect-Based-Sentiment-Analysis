@@ -2,10 +2,28 @@ from abc import ABC
 from typing import List
 
 import tensorflow as tf
-import transformers
+from transformers import TFPreTrainedModel
 
 from .data_types import Pattern
 from .data_types import TokenizedExample
+
+
+def get_key_set(patterns: List[Pattern], n: int, k: int = 1):
+    """
+
+    Parameters
+    ----------
+    patterns
+    n
+        The number of elements in the key set.
+    k
+        The number of the sorted (from the most important) candidates
+        of the key sets.
+
+    Returns
+    -------
+
+    """
 
 
 class ReferenceRecognizer(ABC):
@@ -19,6 +37,8 @@ class ReferenceRecognizer(ABC):
             attention_grads: tf.Tensor
     ) -> bool:
         """ """
+        if not aspect:
+            return True
 
 
 class PatternRecognizer(ABC):
@@ -34,8 +54,7 @@ class PatternRecognizer(ABC):
         """ """
 
 
-class BasicReferenceRecognizer(ReferenceRecognizer,
-                               transformers.TFPreTrainedModel):
+class BasicReferenceRecognizer(ReferenceRecognizer, TFPreTrainedModel):
     """
     Briefly, it represents a text and an aspect as two vectors, and predicts
     that a text relates to an aspect if the cosine similarity is bigger than

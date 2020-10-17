@@ -52,6 +52,7 @@ class AttentionGradientProduct(PatternRecognizer):
         percentile of the total information. Default 80% of weights magnitude.
     """
     information_in_patterns: int = 80
+    is_pattern_scaled: bool = False
 
     def __call__(
             self,
@@ -76,8 +77,8 @@ class AttentionGradientProduct(PatternRecognizer):
         # threshold = 0.05
         # round_decimals = 2
         #
-        # product = attentions * attention_grads
-        # product = tf.abs(product)
+        # product = attentions * tf.abs(attention_grads)
+
         # product = tf.reduce_sum(product, axis=(0, 1))
         # attention_grads = alignment.merge_input(
         #     product, alignment=example.alignment)
@@ -88,8 +89,10 @@ class AttentionGradientProduct(PatternRecognizer):
         #
         # mixtures = product[text_ids, :][:, text_ids]
         # mixtures /= np.max(mixtures + 1e-9, axis=1).reshape(-1, 1)
-        # np.fill_diagonal(mixtures, 1)
-        # mixtures *= w.reshape(-1, 1)
+        # np.fill_diagonal(mixtures, 1)  # as well, we could use max on diagonal
+        # mixtures /= L1 norm
+        # if self.is_pattern_scaled:
+        #   mixtures *= w.reshape(-1, 1)
         #
         # mixtures = np.where(mixtures > threshold, mixtures, 0)
         # mixtures = np.round(mixtures, decimals=round_decimals)

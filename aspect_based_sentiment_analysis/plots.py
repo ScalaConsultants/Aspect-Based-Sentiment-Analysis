@@ -2,9 +2,9 @@ import html
 from typing import List
 from typing import Tuple
 import numpy as np
+from IPython.core.display import display as ipython_display
 from IPython.core.display import HTML
-from .data_types import PredictedExample
-from .data_types import Pattern
+from .data_types import Pattern, Review
 
 
 def html_escape(text):
@@ -45,7 +45,8 @@ def highlight_pattern(pattern: Pattern) -> str:
     return highlighted_text
 
 
-def explain(example: PredictedExample):
+def display_html(patterns: List[Pattern]):
+    # TODO
     aspect = example.aspect_representation
     texts = [f'Words connected with the "{example.aspect}" aspect: <br>']
     texts.extend(highlight_sequence(aspect.tokens, aspect.look_at))
@@ -56,3 +57,13 @@ def explain(example: PredictedExample):
     text = ' '.join(texts)
     html_text = HTML(text)
     return html_text
+
+
+def display_patterns(patterns: List[Pattern]):
+    html_text = display_html(patterns)
+    return ipython_display(html_text)
+
+
+def display(review: Review):
+    html_text = display_html(review.patterns)
+    return ipython_display(html_text)

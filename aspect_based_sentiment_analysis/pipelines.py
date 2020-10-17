@@ -258,18 +258,25 @@ class Pipeline(_Pipeline):  # TODO
             return completed_subtask
         return completed_task
 
-    def transform(
-            self,
-            text: str,
-            aspects: List[str]
-    ) -> CompletedTask:
-        task = self.preprocess(text, aspects)
-        input_batch = self.encode(task.tokenized_examples)
+    # def transform(
+    #         self,
+    #         text: str,
+    #         aspects: List[str]
+    # ) -> CompletedTask:
+    #     task = self.preprocess(text, aspects)
+    #     input_batch = self.encode(task.tokenized_examples)
+    #     output_batch = self.predict(input_batch)
+    #     reviews = self.professor.review(task, output_batch) \
+    #         if self.professor else None
+    #     completed_task = self.postprocess(task, output_batch, reviews)
+    #     return completed_task
+
+    def transform(self, batch, mask: List[List[int]] = None):
+        tokenized_examples = self.tokenize(batch, mask)
+        input_batch = self.encode(tokenized_examples)
         output_batch = self.predict(input_batch)
-        reviews = self.professor.review(task, output_batch) \
-            if self.professor else None
-        completed_task = self.postprocess(task, output_batch, reviews)
-        return completed_task
+        predictions = self.review(tokenized_examples, output_batch)
+        return predictions
 
     def preprocess(self, text: str, aspects: List[str]) -> Task:
         texts = self.text_splitter(text) if self.text_splitter else [text]

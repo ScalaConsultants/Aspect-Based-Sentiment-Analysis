@@ -18,7 +18,7 @@ from .data_types import Task
 @dataclass
 class _Professor(ABC):
     """ """
-    ref_recognizer: ReferenceRecognizer = None
+    reference_recognizer: ReferenceRecognizer = None
     pattern_recognizer: PatternRecognizer = None
 
     def make_decision(
@@ -57,10 +57,10 @@ class Professor(_Professor):
             output_batch: OutputBatch
     ) -> Iterable[Review]:
         for example, args in zip(task, output_batch):
-            is_reference = self.ref_recognizer(example, *args) \
-                if self.ref_recognizer else None
+            is_reference = self.reference_recognizer(example, *args) \
+                if self.reference_recognizer else None
             patterns = self.pattern_recognizer(example, *args) \
-                if self.pattern_recognizer and is_reference is not False else\
+                if self.pattern_recognizer and is_reference is not False else \
                 None
             review = Review(is_reference, patterns)
             yield review
