@@ -50,7 +50,7 @@ def test_preprocess(nlp: BertPipeline):
     )
     assert len(task.subtasks) == 2
     assert list(task.subtasks) == ['aspect_1', 'aspect_2']
-    assert len(task.batch) == 6
+    assert len(task.examples) == 6
     assert task.indices == [(0, 3), (3, 6)]
     subtask_1, subtask_2 = task
     assert subtask_1.text == subtask_2.text == raw_document
@@ -157,13 +157,13 @@ def test_get_completed_task(nlp: BertPipeline):
     nlp.text_splitter = lambda text: text.split('\n')
 
     task = nlp.preprocess(text, aspects=['slack', 'price'])
-    tokenized_examples = task.batch
+    tokenized_examples = task.examples
     input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
     aspect_span_labeled = nlp.label(tokenized_examples, output_batch)
 
     completed_task = nlp.get_completed_task(task, aspect_span_labeled)
-    assert len(completed_task.batch) == 6
+    assert len(completed_task.examples) == 6
     assert completed_task.indices == [(0, 3), (3, 6)]
 
     slack, price = completed_task

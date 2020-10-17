@@ -41,11 +41,6 @@ def load(
         raise error
 
 
-def load_docs(fname: str) -> Iterable[List[str]]:
-    """ The function loads documents used for the language modeling. """
-    raise NotImplemented
-
-
 def load_examples(
         dataset: str = 'semeval',
         domain: str = 'laptop',
