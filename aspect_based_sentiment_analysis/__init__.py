@@ -5,6 +5,12 @@ from .alignment import tokenize
 from .alignment import make_alignment
 from .alignment import merge_input_attentions
 
+from .aux_models import ReferenceRecognizer
+from .aux_models import BasicReferenceRecognizer
+from .aux_models import PatternRecognizer
+from .aux_models import BasicPatternRecognizer
+from .aux_models import predict_key_set
+
 from .data_types import Sentiment
 from .data_types import Example
 from .data_types import LabeledExample
@@ -18,7 +24,6 @@ from .data_types import InputBatch
 from .data_types import OutputBatch
 
 from .loads import load
-from .loads import load_docs
 from .loads import load_examples
 
 from .models import ABSClassifier
@@ -26,7 +31,6 @@ from .models import BertABSCConfig
 from .models import BertABSClassifier
 
 from .pipelines import Pipeline
-from .pipelines import BertPipeline
 
 from .text_splitters import sentencizer
 
@@ -34,6 +38,5 @@ from . import plots
 from .plots import display
 
 from . import training
-from . import recognizers
 from . import text_splitters
 from . import utils
