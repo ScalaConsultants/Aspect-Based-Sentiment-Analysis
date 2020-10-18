@@ -24,11 +24,11 @@ def inputs():
     output_batch = nlp.predict(input_batch)
 
     tokenized_example = tokenized_examples[0]
-    attentions = alignment.merge_input_attentions(
+    attentions = alignment.merge_tensor(
         output_batch.attentions[0],
         alignment=tokenized_example.alignment
     )
-    attention_grads = alignment.merge_input_attentions(
+    attention_grads = alignment.merge_tensor(
         output_batch.attention_grads[0],
         alignment=tokenized_example.alignment
     )

@@ -22,6 +22,7 @@ from .data_types import CompletedSubTask
 from .data_types import Task
 from .data_types import CompletedTask
 from .data_types import InputBatch
+from .data_types import Output
 from .data_types import OutputBatch
 
 from .loads import load
