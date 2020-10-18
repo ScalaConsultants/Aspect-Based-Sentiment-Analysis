@@ -2,9 +2,8 @@ import logging
 from abc import ABC
 from abc import abstractmethod
 from collections import OrderedDict
-from dataclasses import asdict
 from dataclasses import dataclass
-from typing import Callable, Union
+from typing import Callable
 from typing import Iterable
 from typing import List
 
@@ -14,7 +13,9 @@ import transformers
 
 from . import alignment
 from . import utils
-from .data_types import TokenizedExample, Example, LabeledExample
+from .data_types import TokenizedExample
+from .data_types import Example
+from .data_types import LabeledExample
 from .data_types import PredictedExample
 from .data_types import SubTask
 from .data_types import CompletedSubTask
@@ -23,10 +24,9 @@ from .data_types import CompletedTask
 from .data_types import InputBatch
 from .data_types import OutputBatch
 from .data_types import Sentiment
-from .models import ABSClassifier
 from .models import BertABSClassifier
 from .training import classifier_loss
-from .professors import Professor, Review
+from .professors import Professor
 
 logger = logging.getLogger('absa.pipeline')
 
@@ -40,48 +40,16 @@ class _Pipeline(ABC):
     a decision, so we can infer how much results are reliable. For the basic
     absa, you benefit from the `__call__` method.
 
-    We made two important design decisions. Firstly, even some research
-    presents how to predict several aspects at once, we process aspects
-    independently. The used model does not support the multi-aspect
-    prediction. Secondly, the sentiment of a long text tends to be fuzzy and
-    neutral. Therefore, we split a text into smaller independent chunks,
-    called spans. They can include a single sentence or several sentences.
-    It depends how works a `text_splitter`. Note that longer spans have
-    richer context information, but they requires significant computation
-    resources.
-
-    Thanks to the `pattern_recognizer`, we can investigate how much
-    predictions are reliable. In our task, we are curious about two things
-    at most. Firstly, we want to be sure that the model connects the correct
-    word or words with the aspect. If the model does it wrong, the sentiment
-    concerns the different entities. Secondly, even if the model recognized
-    the aspect correctly, we wish to understand the model reasoning better.
-    To do so, the pattern recognizer discovers patterns, a weighted sequence
-    of words, and their approximated importance to the prediction. We want to
-    avoid a situation wherein a single word or weird word combination
-    triggers the model.
-
     Please note that the package contains the separated submodule
     `absa.training`. You can find there complete routines to tune or train
     either the language model or the classifier. Check out the example on
     the package website.
     """
-    model: ABSClassifier
-    tokenizer: transformers.PreTrainedTokenizer
-    text_splitter: Callable[[str], List[str]]
-    pattern_recognizer: PatternRecognizer
 
     @abstractmethod
     def __call__(self, text: str, aspects: List[str]) -> CompletedTask:
         """
-        The __call__ method is for the basic absa. The pipeline
-        performs several clear transformations:
-            - convert text and aspects into the task:
-              the form of well-prepared tokenized example,
-            - encode example into the model compatible input batch,
-            - pass input batch to the model, and form the output batch,
-            - label example using the output batch,
-            - return the well-structured completed task.
+        The __call__ method is for the basic inference.
 
         Parameters
         ----------
@@ -129,7 +97,8 @@ class _Pipeline(ABC):
         """
 
     @abstractmethod
-    def tokenize(self, examples: List[Example]) -> List[TokenizedExample]:
+    def tokenize(self, examples: Iterable[Example]) -> Iterable[
+        TokenizedExample]:
         """
         Tokenize the example. The model can not process the raw pair of two
         strings (text, aspect) directly.
@@ -137,7 +106,7 @@ class _Pipeline(ABC):
         Parameters
         ----------
         examples
-            List of example, the pairs of two raw strings (text, aspect).
+            Iterable of examples, the pairs of two raw strings (text, aspect).
 
         Returns
         -------
@@ -146,7 +115,7 @@ class _Pipeline(ABC):
         """
 
     @abstractmethod
-    def encode(self, examples: List[TokenizedExample]) -> InputBatch:
+    def encode(self, examples: Iterable[TokenizedExample]) -> InputBatch:
         """
         Encode tokenized example. The input batch is a container of tensors
         crucial for the model to make a prediction. The names are compatible 
@@ -183,12 +152,11 @@ class _Pipeline(ABC):
             Container of tensors describing a prediction.
         """
 
-    @abstractmethod
-    def label(
-            self,
-            examples: List[TokenizedExample],
-            output_batch: OutputBatch
-    ) -> Iterable[PredictedExample]:
+    @staticmethod
+    def postprocess(
+            task: Task,
+            batch_examples: Iterable[PredictedExample]
+    ) -> CompletedTask:
         """
         Label example using the detailed information about the prediction.
         The predicted example contains additional attributes such as the
@@ -198,21 +166,21 @@ class _Pipeline(ABC):
 
         Parameters
         ----------
-        examples
-            Independent *preprocessed* tokenized example.
-        output_batch
-            Container of tensors describing a prediction.
+        task
+            Text and aspects in the form of well-prepared tokenized example.
+        batch_examples
+            Predicted examples.
 
         Returns
         -------
-        predicted_examples
-            List of labeled example.
+        CompletedTask
+            Return the well-structured completed task with predicted examples.
         """
 
     @abstractmethod
     def evaluate(
             self,
-            examples: List[LabeledExample],
+            examples: Iterable[LabeledExample],
             metric: tf.metrics.Metric,
             batch_size: int
     ) -> tf.Tensor:
@@ -236,65 +204,41 @@ class _Pipeline(ABC):
 
 
 @dataclass
-class Pipeline(_Pipeline):  # TODO
+class Pipeline(_Pipeline):
     model: BertABSClassifier
     tokenizer: transformers.BertTokenizer
-    professor: Professor = None
+    professor: Professor
     text_splitter: Callable[[str], List[str]] = None
 
-    def __call__(
-            self,
-            text: str,
-            aspects: List[str]
-    ) -> Union[PredictedExample, CompletedSubTask, CompletedTask]:  # TODO
-        completed_task = self.transform(text, aspects)
-        if len(aspects) == 1:
-            completed_subtask, = completed_task
-
-            if len(completed_subtask) == 1:
-                predicted_example, = completed_subtask
-
-                return predicted_example
-            return completed_subtask
+    def __call__(self, text: str, aspects: List[str]) -> CompletedTask:
+        task = self.preprocess(text, aspects)
+        predictions = self.transform(task.examples)
+        completed_task = self.postprocess(task, predictions)
         return completed_task
 
-    # def transform(
-    #         self,
-    #         text: str,
-    #         aspects: List[str]
-    # ) -> CompletedTask:
-    #     task = self.preprocess(text, aspects)
-    #     input_batch = self.encode(task.tokenized_examples)
-    #     output_batch = self.predict(input_batch)
-    #     reviews = self.professor.review(task, output_batch) \
-    #         if self.professor else None
-    #     completed_task = self.postprocess(task, output_batch, reviews)
-    #     return completed_task
+    def preprocess(self, text: str, aspects: List[str]) -> Task:
+        spans = self.text_splitter(text) if self.text_splitter else [text]
+        subtasks = OrderedDict()
+        for aspect in aspects:
+            examples = [Example(span, aspect) for span in spans]
+            subtasks[aspect] = SubTask(text, aspect, examples)
+        task = Task(text, aspects, subtasks)
+        return task
 
-    def transform(self, batch, mask: List[List[int]] = None):
-        tokenized_examples = self.tokenize(batch, mask)
+    def transform(self, examples: Iterable[Example]) -> Iterable[
+        PredictedExample]:
+        tokenized_examples = self.tokenize(examples)
         input_batch = self.encode(tokenized_examples)
         output_batch = self.predict(input_batch)
         predictions = self.review(tokenized_examples, output_batch)
         return predictions
 
-    def preprocess(self, text: str, aspects: List[str]) -> Task:
-        texts = self.text_splitter(text) if self.text_splitter else [text]
-        subtasks = OrderedDict()
-        for aspect in aspects:
-            examples = [Example(text, aspect) for text in texts]
-            tokenized_examples = self.tokenize(examples)
-            subtask = SubTask(text, aspect, tokenized_examples)
-            subtasks[aspect] = subtask
-        task = Task(text, aspects, subtasks)
-        return task
+    def tokenize(self, examples: Iterable[Example]) -> Iterable[
+        TokenizedExample]:
+        return (alignment.tokenize(self.tokenizer, e.text, e.aspect) for e in
+                examples)
 
-    def tokenize(self, examples: List[Example]) -> List[TokenizedExample]:
-        examples = [alignment.tokenize(self.tokenizer, e.text, e.aspect)
-                    for e in examples]
-        return examples
-
-    def encode(self, examples: List[TokenizedExample]) -> InputBatch:
+    def encode(self, examples: Iterable[TokenizedExample]) -> InputBatch:
         token_pairs = [(e.text_subtokens, e.aspect_subtokens) for e in examples]
         encoded = self.tokenizer.batch_encode_plus(
             token_pairs,
@@ -346,63 +290,50 @@ class Pipeline(_Pipeline):  # TODO
         )
         return output_batch
 
+    def review(
+            self,
+            examples: Iterable[TokenizedExample],
+            output_batch: OutputBatch
+    ) -> Iterable[PredictedExample]:
+        return (self.professor.review(e, o) for e, o in
+                zip(examples, output_batch))
+
     @staticmethod
     def postprocess(
-            examples: List[TokenizedExample],
-            output_batch: OutputBatch,
-            reviews: List[Review] = None
-    ) -> Iterable[PredictedExample]:
-        # TODO: get completed task
-        sentiment_ids = np.argmax(output_batch.scores, axis=-1).astype(int)
-        for i, example in enumerate(examples):
-            sentiment_id = sentiment_ids[i]
-            kwargs = asdict(example)
-            predicted_example = PredictedExample(
-                sentiment=Sentiment(sentiment_id),
-                scores=output_batch.scores[i].numpy().tolist(),
-                review=next(reviews),
-                **kwargs
-            )
-            yield predicted_example
-
-    def evaluate(
-            self,
-            examples: List[LabeledExample],
-            metric: tf.metrics.Metric,
-            batch_size: int
-    ) -> tf.Tensor:
-        batches = utils.batches(examples, batch_size)
-        for batch in batches:
-            tokenized_examples = self.tokenize(batch)
-            input_batch = self.encode(tokenized_examples)
-            output_batch = self.predict(input_batch)
-            labeled_examples = self.label(tokenized_examples, output_batch)
-            y_pred = [e.sentiment.value for e in labeled_examples]
-            y_true = [e.sentiment.value for e in batch]
-            metric.update_state(y_true, y_pred)
-        result = metric.result()
-        return result
-
-    @staticmethod
-    def get_completed_task(
             task: Task,
             batch_examples: Iterable[PredictedExample]
     ) -> CompletedTask:
-        batch_examples = list(batch_examples)
+        batch_examples = list(batch_examples)  # Materialize examples.
         subtasks = OrderedDict()
         for start, end in task.indices:
             examples = batch_examples[start:end]
-            first = examples[0]
+            # Examples should have the same aspect (an implicit check).
+            aspect, = {e.aspect for e in examples}
             scores = np.max([e.scores for e in examples], axis=0)
             scores /= np.linalg.norm(scores, ord=1)
             sentiment_id = np.argmax(scores).astype(int)
             aspect_document = CompletedSubTask(
                 text=task.text,
-                aspect=first.aspect,
+                aspect=aspect,
                 examples=examples,
                 sentiment=Sentiment(sentiment_id),
                 scores=list(scores)
             )
-            subtasks[first.aspect] = aspect_document
+            subtasks[aspect] = aspect_document
         task = CompletedTask(task.text, task.aspects, subtasks)
         return task
+
+    def evaluate(
+            self,
+            examples: Iterable[LabeledExample],
+            metric: tf.metrics.Metric,
+            batch_size: int
+    ) -> tf.Tensor:
+        batches = utils.batches(examples, batch_size)
+        for batch in batches:
+            predictions = self.transform(batch)
+            y_pred = [e.sentiment.value for e in predictions]
+            y_true = [e.sentiment.value for e in batch]
+            metric.update_state(y_true, y_pred)
+        result = metric.result()
+        return result
