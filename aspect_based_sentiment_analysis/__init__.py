@@ -3,7 +3,7 @@ __version__ = "1.1.2"
 
 from .alignment import tokenize
 from .alignment import make_alignment
-from .alignment import merge_input_attentions
+from .alignment import merge_tensor
 
 from .aux_models import ReferenceRecognizer
 from .aux_models import BasicReferenceRecognizer

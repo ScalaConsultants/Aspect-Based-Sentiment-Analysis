@@ -79,11 +79,7 @@ def make_alignment(
     return sub_tokens, alignment
 
 
-def merge_input_attentions(
-        attentions: tf.Tensor,
-        alignment: List[List[int]],
-        reduce: bool = False
-) -> tf.Tensor:
+def merge_tensor(tensor: tf.Tensor, alignment: List[List[int]]) -> tf.Tensor:
     """ Merge input sub-token attentions into token attentions. """
 
     def aggregate(a, fun):
@@ -93,18 +89,16 @@ def merge_input_attentions(
             new[i] = fun(a[alignment[i]])
         return new
 
-    attentions = tf.reduce_sum(attentions, axis=[0, 1], keepdims=True) \
-        if reduce else attentions
     # For attention _to_ a split-up word, we sum up the attention weights
     # over its tokens. For attention _from_ a split-up word, we take the mean
     # of the attention weights over its tokens. In other words, we take the
     # mean over rows, and sum over columns of split tokens according to the
     # alignment. Note that if we go along the axis, the aggregation
     # impacts to orthogonal dimension.
-    attentions = attentions.numpy()
+    x = tensor.numpy()
     attention_to = partial(aggregate, fun=np.mean)
-    attentions = np.apply_along_axis(attention_to, 2, attentions)
+    x = np.apply_along_axis(attention_to, 2, x)
     attention_from = partial(aggregate, fun=np.sum)
-    attentions = np.apply_along_axis(attention_from, 3, attentions)
-    attentions = tf.convert_to_tensor(attentions)
-    return attentions
+    x = np.apply_along_axis(attention_from, 3, x)
+    x = tf.convert_to_tensor(x)
+    return x
