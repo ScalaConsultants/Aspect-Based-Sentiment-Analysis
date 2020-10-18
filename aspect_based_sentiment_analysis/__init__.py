@@ -16,6 +16,7 @@ from .data_types import Example
 from .data_types import LabeledExample
 from .data_types import TokenizedExample
 from .data_types import PredictedExample
+from .data_types import Review
 from .data_types import SubTask
 from .data_types import CompletedSubTask
 from .data_types import Task

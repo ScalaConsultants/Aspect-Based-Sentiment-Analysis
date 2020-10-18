@@ -13,9 +13,9 @@ from aspect_based_sentiment_analysis import (
     Example,
     Task,
     Professor,
-    load_examples
+    load_examples,
+    Review
 )
-from aspect_based_sentiment_analysis.data_types import Review
 
 np.random.seed(1)
 tf.random.set_seed(1)
