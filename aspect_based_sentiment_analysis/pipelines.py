@@ -49,7 +49,7 @@ class _Pipeline(ABC):
     @abstractmethod
     def __call__(self, text: str, aspects: List[str]) -> CompletedTask:
         """
-        The __call__ method is for the basic inference.
+        The __call__ method is for the basic inference to make predictions.
 
         Parameters
         ----------
@@ -71,15 +71,10 @@ class _Pipeline(ABC):
     @abstractmethod
     def preprocess(self, text: str, aspects: List[str]) -> Task:
         """
-        Preprocess the raw task text and aspects into the task. The task
-        keeps text and aspects in the form of well-prepared tokenized
-        example. The example is an independent *preprocessed* sample,
-        tokenized pair of two strings (text, aspect) which we further
-        encode and pass to the model.
-
-        Note that we may need to split a long text into smaller text chunks,
-        called spans. We can do it using a text splitter which defines how
-        long the span is.
+        Preprocess the raw task text and aspects into the task. Note that
+        we may need to split a long text into smaller text chunks, called
+        spans. We can do it using a text splitter which defines how long
+        the span is.
 
         Parameters
         ----------
@@ -117,7 +112,7 @@ class _Pipeline(ABC):
     @abstractmethod
     def encode(self, examples: Iterable[TokenizedExample]) -> InputBatch:
         """
-        Encode tokenized example. The input batch is a container of tensors
+        Encode tokenized examples. The input batch is a container of tensors
         crucial for the model to make a prediction. The names are compatible 
         with the *transformers* package. 
 
@@ -158,23 +153,21 @@ class _Pipeline(ABC):
             batch_examples: Iterable[PredictedExample]
     ) -> CompletedTask:
         """
-        Label example using the detailed information about the prediction.
-        The predicted example contains additional attributes such as the
-        sentiment and scores for each sentiment class. The aspect product
-        and patterns are optional. They are if a pipeline has a **pattern
-        recognizer**.
+        Postprocess using the detailed information about the prediction.
+        The predicted examples contains additional attributes such as the
+        sentiment and scores for each sentiment class.
 
         Parameters
         ----------
         task
             Text and aspects in the form of well-prepared tokenized example.
         batch_examples
-            Predicted examples.
+            Predicted examples that come from a professor.
 
         Returns
         -------
         CompletedTask
-            Return the well-structured completed task with predicted examples.
+            Return the completed task with predicted examples.
         """
 
     @abstractmethod
@@ -233,18 +226,18 @@ class Pipeline(_Pipeline):
         predictions = self.review(tokenized_examples, output_batch)
         return predictions
 
-    def tokenize(self, examples: Iterable[Example]) -> Iterable[
-        TokenizedExample]:
-        return (alignment.tokenize(self.tokenizer, e.text, e.aspect) for e in
-                examples)
+    def tokenize(self, examples: Iterable[Example]) -> List[TokenizedExample]:
+        return [alignment.tokenize(self.tokenizer, e.text, e.aspect) for e in
+                examples]
 
     def encode(self, examples: Iterable[TokenizedExample]) -> InputBatch:
         token_pairs = [(e.text_subtokens, e.aspect_subtokens) for e in examples]
         encoded = self.tokenizer.batch_encode_plus(
             token_pairs,
             add_special_tokens=True,
-            padding=True,
-            return_tensors='tf'
+            pad_to_max_length='right',
+            return_tensors='tf',
+            return_attention_masks=True
         )
         batch = InputBatch(
             token_ids=encoded['input_ids'],

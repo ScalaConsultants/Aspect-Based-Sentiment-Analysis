@@ -206,4 +206,4 @@ class OutputBatch:
 
     def __iter__(self) -> Iterable[Output]:
         num_examples, classes = self.scores.shape
-        return (self[i] for i in range(len(num_examples)))
+        return (self[i] for i in range(num_examples))

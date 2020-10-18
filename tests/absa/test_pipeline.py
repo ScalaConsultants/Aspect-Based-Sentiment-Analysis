@@ -6,40 +6,45 @@ import tensorflow as tf
 from aspect_based_sentiment_analysis import (
     BertABSClassifier,
     BertABSCConfig,
-    BertPipeline,
+    CompletedTask,
+    Pipeline,
+    PredictedExample,
     Sentiment,
     Example,
-    load_examples,
-    recognizers
+    Task,
+    Professor,
+    load_examples
 )
+from aspect_based_sentiment_analysis.data_types import Review
+
 np.random.seed(1)
 tf.random.set_seed(1)
 
 
 @pytest.fixture
-def nlp() -> BertPipeline:
-    # Here, we do more integration like tests rather than
-    # mocked unit tests. We show up how the pipeline works,
-    # and it's why we use this well-defined pipeline fixture.
+def nlp() -> Pipeline:
     name = 'absa/classifier-rest-0.1'
     tokenizer = transformers.BertTokenizer.from_pretrained(name)
     # We pass a config explicitly (however, it can be downloaded automatically)
     config = BertABSCConfig.from_pretrained(name)
     model = BertABSClassifier.from_pretrained(name, config=config)
-    nlp = BertPipeline(model, tokenizer)
+    professor = Professor()  # Without both pattern and reference recognizers.
+    nlp = Pipeline(model, tokenizer, professor, text_splitter=None)
     return nlp
 
 
-def test_integration(nlp: BertPipeline):
+def test_call(nlp: Pipeline):
     text = ("We are great fans of Slack, but we wish the subscriptions "
             "were more accessible to small startups.")
-    slack, price = nlp(text, aspects=['slack', 'price'])
+    completed_task = nlp(text, aspects=['slack', 'price'])
+    assert isinstance(completed_task, CompletedTask)
+    slack, price = completed_task
     assert slack.sentiment == Sentiment.positive
     assert price.sentiment == Sentiment.negative
 
 
-def test_preprocess(nlp: BertPipeline):
-    # We split a document into spans (in this case, into sentences).
+def test_preprocess(nlp: Pipeline):
+    # We split a document into spans (in this case separated by the new line).
     nlp.text_splitter = lambda text: text.split('\n')
     raw_document = ("This is the test sentence 1.\n"
                     "This is the test sentence 2.\n"
@@ -48,6 +53,7 @@ def test_preprocess(nlp: BertPipeline):
         text=raw_document,
         aspects=['aspect_1', 'aspect_2']
     )
+    assert isinstance(task, Task)
     assert len(task.subtasks) == 2
     assert list(task.subtasks) == ['aspect_1', 'aspect_2']
     assert len(task.examples) == 6
@@ -58,7 +64,7 @@ def test_preprocess(nlp: BertPipeline):
     assert len(subtask_1.examples) == 3
 
 
-def test_encode(nlp: BertPipeline):
+def test_encode(nlp: Pipeline):
     text_1 = ("We are great fans of Slack, but we wish the subscriptions "
               "were more accessible to small startups.")
     text_2 = "We are great fans of Slack"
@@ -84,7 +90,7 @@ def test_encode(nlp: BertPipeline):
     assert np.allclose(token_type_ids[0, :-2], 0)
 
 
-def test_predict(nlp: BertPipeline):
+def test_predict(nlp: Pipeline):
     text_1 = ("We are great fans of Slack, but we wish the subscriptions "
               "were more accessible to small startups.")
     text_2 = "We are great fans of Slack"
@@ -101,40 +107,53 @@ def test_predict(nlp: BertPipeline):
     assert np.argmax(scores, axis=-1).tolist() == [2, 2]
 
 
-def test_label(nlp: BertPipeline):
-    # We add the pattern recognizer to the pipeline.
-    pattern_recognizer = recognizers.AttentionGradientProduct()
-    nlp.pattern_recognizer = pattern_recognizer
-
+def test_review(nlp: Pipeline):
     text_1 = ("We are great fans of Slack, but we wish the subscriptions "
               "were more accessible to small startups.")
     text_2 = "The Slack often has bugs."
-    text_3 = "best of all is the warm vibe"
     aspect = "slack"
-    examples = [Example(text_1, aspect),
-                Example(text_2, aspect),
-                Example(text_3, aspect)]
+    examples = [Example(text_1, aspect), Example(text_2, aspect)]
 
     tokenized_examples = nlp.tokenize(examples)
     input_batch = nlp.encode(tokenized_examples)
     output_batch = nlp.predict(input_batch)
-    labeled_examples = nlp.label(tokenized_examples, output_batch)
-    labeled_examples = list(labeled_examples)
-    labeled_1, labeled_2, labeled_3 = labeled_examples
+    predictions = nlp.review(tokenized_examples, output_batch)
+    predictions = list(predictions)
+
+    labeled_1, labeled_2 = predictions
     assert labeled_1.sentiment == Sentiment.positive
     assert labeled_2.sentiment == Sentiment.negative
+    assert isinstance(labeled_1, PredictedExample)
     assert isinstance(labeled_1.scores, list)
-    assert np.argmax(labeled_1.aspect_representation.look_at) == 5
-    assert np.argmax(labeled_2.aspect_representation.look_at) == 1
-
-    # We need to calibrate the model. The prediction should be neutral.
-    # In fact, the model does not recognize the aspect correctly.
-    assert labeled_3.sentiment == Sentiment.positive
-    assert np.allclose(labeled_3.aspect_representation.look_at,
-                       [1.0, 0.16, 0.50, 0.54, 0.34, 0.39, 0.12], atol=0.01)
+    assert isinstance(labeled_1.review, Review)
+    assert not labeled_1.review.is_reference
+    assert not labeled_1.review.patterns
 
 
-def test_evaluate(nlp: BertPipeline):
+def test_postprocess(nlp: Pipeline):
+    text = ("We are great fans of Slack.\n"
+            "The Slack often has bugs.\n"
+            "best of all is the warm vibe")
+    # Define a naive text_splitter.
+    nlp.text_splitter = lambda text: text.split('\n')
+
+    task = nlp.preprocess(text, aspects=['slack', 'price'])
+    predictions = nlp.transform(task.examples)
+    completed_task = nlp.postprocess(task, predictions)
+
+    assert len(completed_task.examples) == 6
+    assert completed_task.indices == [(0, 3), (3, 6)]
+
+    slack, price = completed_task
+    assert slack.text == price.text == text
+    # The sentiment among fragments are different. We normalize scores.
+    assert np.allclose(slack.scores, [0.06, 0.46, 0.48], atol=0.01)
+    # Please note once gain that there is a problem
+    # with the neutral sentiment, model is over-fitted.
+    assert np.allclose(price.scores, [0.06, 0.42, 0.52], atol=0.01)
+
+
+def test_evaluate(nlp: Pipeline):
     examples = load_examples(
         dataset='semeval',
         domain='restaurant',
@@ -147,29 +166,3 @@ def test_evaluate(nlp: BertPipeline):
     assert result == 1
     result = nlp.evaluate(examples[10:20], metric, batch_size=10)
     assert np.isclose(result, 0.95)
-
-
-def test_get_completed_task(nlp: BertPipeline):
-    text = ("We are great fans of Slack.\n"
-            "The Slack often has bugs.\n"
-            "best of all is the warm vibe")
-    # Make sure we have defined a text_splitter, even naive.
-    nlp.text_splitter = lambda text: text.split('\n')
-
-    task = nlp.preprocess(text, aspects=['slack', 'price'])
-    tokenized_examples = task.examples
-    input_batch = nlp.encode(tokenized_examples)
-    output_batch = nlp.predict(input_batch)
-    aspect_span_labeled = nlp.label(tokenized_examples, output_batch)
-
-    completed_task = nlp.get_completed_task(task, aspect_span_labeled)
-    assert len(completed_task.examples) == 6
-    assert completed_task.indices == [(0, 3), (3, 6)]
-
-    slack, price = completed_task
-    assert slack.text == price.text == text
-    # The sentiment among fragments are different. We normalize scores.
-    assert np.allclose(slack.scores, [0.06, 0.46, 0.48], atol=0.01)
-    # Please note once gain that there is a problem
-    # with the neutral sentiment, model is over-fitted.
-    assert np.allclose(price.scores, [0.06, 0.42, 0.52], atol=0.01)

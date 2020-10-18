@@ -35,7 +35,7 @@ class Professor(_Professor):
             example: TokenizedExample,
             output: Output
     ) -> PredictedExample:
-        scores = list(output.scores)
+        scores = list(output.scores.numpy())
         sentiment_id = np.argmax(scores).astype(int)
         sentiment = Sentiment(sentiment_id)
 

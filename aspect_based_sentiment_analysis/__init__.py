@@ -37,6 +37,8 @@ from .text_splitters import sentencizer
 from . import plots
 from .plots import display
 
+from .professors import Professor
+
 from . import training
 from . import text_splitters
 from . import utils

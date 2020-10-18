@@ -1,0 +1,159 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="DuplicatedCode" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="EditorConfigReferenceCorrectness" enabled="true" level="ERROR" enabled_by_default="false" />
+    <inspection_tool class="HtmlDeprecatedAttribute" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="NonAsciiCharacters" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyAbstractClassInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyClassHasNoInitInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="14">
+            <item index="0" class="java.lang.String" itemvalue="pandas" />
+            <item index="1" class="java.lang.String" itemvalue="tqdm" />
+            <item index="2" class="java.lang.String" itemvalue="joblib" />
+            <item index="3" class="java.lang.String" itemvalue="nltk" />
+            <item index="4" class="java.lang.String" itemvalue="sentencepiece" />
+            <item index="5" class="java.lang.String" itemvalue="resampy" />
+            <item index="6" class="java.lang.String" itemvalue="matplotlib" />
+            <item index="7" class="java.lang.String" itemvalue="librosa" />
+            <item index="8" class="java.lang.String" itemvalue="mpi4py" />
+            <item index="9" class="java.lang.String" itemvalue="sacrebleu" />
+            <item index="10" class="java.lang.String" itemvalue="google" />
+            <item index="11" class="java.lang.String" itemvalue="tensorflow" />
+            <item index="12" class="java.lang.String" itemvalue="transformers" />
+            <item index="13" class="java.lang.String" itemvalue="numpy" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8Inspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="E731" />
+          <option value="E111" />
+          <option value="E127" />
+          <option value="E203" />
+          <option value="E231" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="N803" />
+          <option value="N806" />
+          <option value="N814" />
+          <option value="N812" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPropertyDefinitionInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyShadowingBuiltinsInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredNames">
+        <list>
+          <option value="input" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyTypeCheckerInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="tensorflow.keras" />
+          <option value="automatic_speech_recognition.optimizer.*" />
+          <option value="tensorflow.sign" />
+          <option value="tensorflow.GradientTape" />
+          <option value="tensorflow.maximum" />
+          <option value="tensorflow.norm" />
+          <option value="tensorflow.reshape" />
+          <option value="tensorflow.add" />
+          <option value="tensorflow.cast" />
+          <option value="tensorflow_core._api.v2.math.reduce_sum" />
+          <option value="tensorflow.ones_like" />
+          <option value="tensorflow.int32" />
+          <option value="tensorflow_core._api.v2.math.reduce_max" />
+          <option value="tensorflow_core._api.v2.nn.ctc_loss" />
+          <option value="tensorflow.float32" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.backend.ctc_batch_cost" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.utils.get_file" />
+          <option value="tensorflow_core._api.v2.data.Dataset" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.preprocessing.text.Tokenizer" />
+          <option value="tensorflow.concat" />
+          <option value="tensorflow.expand_dims" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.layers.Dense" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.layers.GRU" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.layers.Embedding" />
+          <option value="tensorflow_core._api.v2.nn.tanh" />
+          <option value="tensorflow_core._api.v2.nn.softmax" />
+          <option value="tensorflow.reduce_sum" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.layers.Layer" />
+          <option value="tensorflow.zeros" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.layers.LSTM" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.losses.SparseCategoricalCrossentropy" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.optimizers.Adam" />
+          <option value="tensorflow_core._api.v2.math.logical_not" />
+          <option value="tensorflow_core._api.v2.math.equal" />
+          <option value="tensorflow.reduce_mean" />
+          <option value="tensorflow.convert_to_tensor" />
+          <option value="tensorflow.argmax" />
+          <option value="tensorflow_core._api.v2.random.set_seed" />
+          <option value="transfer.change_names" />
+          <option value="tensorflow.python" />
+          <option value="tensorflow.function" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.layers.Dropout" />
+          <option value="tensorflow_core._api.v2.distribute.MirroredStrategy" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.optimizers.Optimizer" />
+          <option value="tensorflow.Tensor" />
+          <option value="tensorflow.stack" />
+          <option value="tensorflow_core._api.v2.random.*" />
+          <option value="tensorflow_core._api.v2.dtypes.*" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.optimizers.SGD" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.callbacks.Callback" />
+          <option value="tensorflow.transpose" />
+          <option value="tensorflow_core._api.v2.linalg.set_diag" />
+          <option value="tensorflow.abs" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.Model" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.losses.MSE" />
+          <option value="tensorflow_core._api.v2.nn.softmax_cross_entropy_with_logits" />
+          <option value="tensorflow.one_hot" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.metrics.Mean" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.metrics.Metric" />
+          <option value="plots.*" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.metrics.Accuracy" />
+          <option value="tensorflow_core.python.keras.api._v2.keras.metrics.CategoricalAccuracy" />
+          <option value="tensorflow_core._api.v2.distribute.ReduceOp" />
+          <option value="tensorflow_core._api.v2.distribute.Strategy" />
+          <option value="tensorflow.device" />
+          <option value="tensorflow_core._api.v2.distribute.OneDeviceStrategy" />
+          <option value="tensorflow_core._api.v2.distribute.ReductionToOneDevice" />
+          <option value="tensorflow_core._api.v2.distribute.CentralStorageStrategy" />
+          <option value="tensorflow_core._api.v2.distribute.experimental.CentralStorageStrategy" />
+          <option value="tensorflow.distribute" />
+          <option value="tensorflow.optimizer" />
+          <option value="tensorflow_core._api.v2.math.confusion_matrix" />
+          <option value="tensorflow.constant" />
+          <option value="typing.OrderedDict" />
+          <option value="tensorflow.*" />
+          <option value="aspect_based_sentiment_analysis.pipelines.BertPipeline.validate" />
+          <option value="aspect_based_sentiment_analysis.pipelines.BertPipeline.postprocess" />
+          <option value="aspect_based_sentiment_analysis.pipelines.BertPipeline.review" />
+          <option value="aspect_based_sentiment_analysis.data_types.Task.tokenized_examples" />
+          <option value="aspect_based_sentiment_analysis.BertTokenizer" />
+          <option value="aspect_based_sentiment_analysis.BertProfessor" />
+          <option value="aspect_based_sentiment_analysis.explain" />
+          <option value="aspect_based_sentiment_analysis.models.get_key_set" />
+          <option value="torch.tensor.Tensor.*" />
+          <option value="bool.*" />
+          <option value="torch.utils.data.dataset.Dataset.targets" />
+          <option value="tests.conftest.mark_run_slow" />
+          <option value="tests.performance.conftest.mark_run_slow" />
+          <option value="utils" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="Query_bound_parameters" enabled="true" level="WARNING" enabled_by_default="false" />
+  </profile>
+</component>
