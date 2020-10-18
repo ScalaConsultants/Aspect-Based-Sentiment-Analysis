@@ -1,4 +1,3 @@
-import functools
 from functools import partial
 from typing import List
 from typing import Tuple

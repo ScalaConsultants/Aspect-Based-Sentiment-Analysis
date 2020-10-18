@@ -73,7 +73,7 @@ def test_merge_input_attentions(example: TokenizedExample):
 
     layer, head = 5, 7  # Randomly selected layer and head.
     # We choose an arbitrary (not divided) token. At the beginning, the indices
-    # are the same. Attentions between not divided tokens should be unchanged.
+    # are the same. Attentions between not divided tokens should be unchanged.
     assert attentions[layer, head, 1, 2] == α[layer, head, 1, 2]
 
     # For attention _to_ a split-up word, we sum up the attention weights

@@ -86,7 +86,7 @@ class PredictedExample(TokenizedExample, LabeledExample):
 
 
 @dataclass(frozen=True)
-class SubTask:  # TODO: maybe Document
+class SubTask:
     """ The subtask is to classify the sentiment of a
     potentially long text for a single aspect. In contrast to
     convert the pair of two strings (text, aspect) into the
@@ -99,9 +99,9 @@ class SubTask:  # TODO: maybe Document
     context information. """
     text: str
     aspect: str
-    examples: List[TokenizedExample]
+    examples: List[Example]
 
-    def __iter__(self) -> Iterable[TokenizedExample]:
+    def __iter__(self) -> Iterable[Example]:
         return iter(self.examples)
 
 
@@ -113,7 +113,6 @@ class CompletedSubTask(SubTask):
     examples: List[PredictedExample]
     sentiment: Sentiment
     scores: List[float]
-    # TODO: maybe without an average?
 
 
 @dataclass(frozen=True)
@@ -141,11 +140,11 @@ class Task:
         return indices
 
     @property
-    def batch(self) -> List[TokenizedExample]:
+    def examples(self) -> List[Example]:
         """ Stack example from each subtask into one batch. """
         return [example for subtask in self for example in subtask]
 
-    def __getitem__(self, aspect: str):
+    def __getitem__(self, aspect: str) -> SubTask:
         return self.subtasks[aspect]
 
     def __iter__(self) -> Iterable[SubTask]:
@@ -177,15 +176,34 @@ class InputBatch:
 
 
 @dataclass(frozen=True)
+class Output:
+    """ The model output of a single example. The model returns not
+    only scores, the softmax of logits, but also stacked hidden states,
+    attentions, and attention gradients with respect to the model output.
+    All of them are useful not only for the classification, but also
+    we use them to explain model decisions. """
+    scores: tf.Tensor  # [classes]
+    hidden_states: tf.Tensor  # [layer, sequence, embedding]
+    attentions: tf.Tensor  # [layer, head, attention, attention]
+    attention_grads: tf.Tensor  # [layer, head, attention, attention]
+
+
+@dataclass(frozen=True)
 class OutputBatch:
-    """ The model returns not only scores, the softmax of
-    logits, but also stacked hidden states [example, layer,
-    sequence, embedding], attentions [example, layer, head,
-    attention, attention], and attention gradients with
-    respect to the model output. All of them are useful not
-    only for the classification, but also we use them to probe
-    and understand model's decision-making. """
-    scores: tf.Tensor
-    hidden_states: tf.Tensor
-    attentions: tf.Tensor
-    attention_grads: tf.Tensor
+    """ The model batch output. """
+    scores: tf.Tensor  # [example, classes]
+    hidden_states: tf.Tensor  # [example, layer, sequence, embedding]
+    attentions: tf.Tensor  # [example, layer, head, attention, attention]
+    attention_grads: tf.Tensor  # [example, layer, head, attention, attention]
+
+    def __getitem__(self, i: int) -> Output:
+        return Output(
+            self.scores[i],
+            self.hidden_states[i],
+            self.attentions[i],
+            self.attention_grads[i]
+        )
+
+    def __iter__(self) -> Iterable[Output]:
+        num_examples, classes = self.scores.shape
+        return (self[i] for i in range(len(num_examples)))
