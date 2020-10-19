@@ -10,6 +10,7 @@ from aspect_based_sentiment_analysis import Example
 from aspect_based_sentiment_analysis import PredictedExample
 from aspect_based_sentiment_analysis import alignment
 from aspect_based_sentiment_analysis import Output
+from aspect_based_sentiment_analysis import Pattern
 
 
 def test_basic_reference_recognizer():
@@ -137,3 +138,14 @@ def test_basic_pattern_recognizer_build_patterns():
     *_, pattern_3 = patterns
     assert pattern_3.importance == 1
     assert pattern_3.weights == [0, 0, 0]
+
+
+def test_predict_key_set():
+    tokens = list('abcd')
+    weights = [[0, 0, 0, 3],
+               [1, 0, 1, 0],
+               [1, 0, 0, 0],
+               [2, 0, 1, 0]]
+    patterns = [Pattern(None, tokens, w) for w in weights]
+    key_set_candidate = absa.predict_key_set(patterns, n=2)
+    assert key_set_candidate == {0, 3}

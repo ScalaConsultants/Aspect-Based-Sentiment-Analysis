@@ -1,6 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
 from typing import List
+from typing import Set
 from typing import Tuple
 from dataclasses import dataclass
 from dataclasses import field
@@ -177,5 +178,10 @@ class BasicPatternRecognizer(PatternRecognizer):
         return [build(i) for i in indices[:self.max_patterns]]
 
 
-def predict_key_set(patterns: List[Pattern], n: int, k: int = 1):
-    pass
+def predict_key_set(patterns: List[Pattern], n: int) -> Set[int]:
+    """ Make sure that patterns before a prediction are scaled by
+    importance values. The function returns token indices. """
+    weights = np.stack([p.weights for p in patterns]).sum(axis=0)
+    decreasing = np.argsort(weights * -1)
+    key_set = set(decreasing[:n])
+    return key_set
