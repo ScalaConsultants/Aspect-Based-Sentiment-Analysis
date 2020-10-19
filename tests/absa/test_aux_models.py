@@ -5,13 +5,57 @@ import tensorflow as tf
 
 import aspect_based_sentiment_analysis as absa
 from aspect_based_sentiment_analysis import BasicPatternRecognizer
+from aspect_based_sentiment_analysis import BasicReferenceRecognizer
 from aspect_based_sentiment_analysis import Example
 from aspect_based_sentiment_analysis import PredictedExample
 from aspect_based_sentiment_analysis import alignment
 from aspect_based_sentiment_analysis import Output
 
 
-def test_basic_pattern_recognizer_call():
+def test_basic_reference_recognizer():
+    text = 'the automobile is so cool and the service is prompt and curious.'
+    examples = [Example(text, 'breakfast'), Example(text, 'service'), Example(text, 'car')]
+    recognizer = BasicReferenceRecognizer(threshold=0.08)
+    nlp = absa.load('absa/classifier-rest-0.1', reference_recognizer=recognizer)
+    predictions = nlp.transform(examples)
+    prediction_1, prediction_2, prediction_3 = predictions
+    assert not prediction_1.review.is_reference
+    assert prediction_2.review.is_reference
+    assert prediction_3.review.is_reference
+
+
+def test_basic_reference_recognizer_from_pretrained():
+    name = 'absa/basic_reference_recognizer-rest-0.1'
+    recognizer = BasicReferenceRecognizer.from_pretrained(name)
+    assert recognizer.threshold == 0.08
+
+
+def test_basic_reference_recognizer_transform():
+    h = tf.constant([[0, 1, 0],
+                     [0, 1, 0],
+                     [0, 0, 0],
+                     [4, 3, 0]], dtype=float)
+    hidden_states = tf.reshape(h, [1, 4, 3])
+    text_mask = [True, True, False, False]
+    aspect_mask = [False, False, False, True]
+    similarity = BasicReferenceRecognizer.transform(
+        hidden_states, text_mask, aspect_mask)
+    expected = np.array([0, 1, 0]) @ np.array([.8, .6, 0])
+    assert expected == 0.6
+    assert np.isclose(similarity, expected, atol=1e-7, rtol=0)
+
+
+def test_basic_reference_recognizer_aspect_subtoken_masks():
+    e = mock.Mock()
+    e.text_subtokens = list('abc')
+    e.aspect_subtokens = list('de')
+    e.subtokens = ['cls', *e.text_subtokens, 'sep', *e.aspect_subtokens, 'sep']
+    text_mask, aspect_mask = BasicReferenceRecognizer.text_aspect_subtoken_masks(e)
+    assert text_mask == [False, True, True, True, False, False, False, False]
+    assert aspect_mask == [False, False, False, False, False, True, True, False]
+
+
+def test_basic_pattern_recognizer():
     text = ("We are great fans of Slack, but we wish the subscriptions "
             "were more accessible to small startups.")
     example = Example(text, aspect='price')

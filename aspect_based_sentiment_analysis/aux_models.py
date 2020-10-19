@@ -3,10 +3,11 @@ from abc import abstractmethod
 from typing import List
 from typing import Tuple
 from dataclasses import dataclass
+from dataclasses import field
 
 import numpy as np
 import tensorflow as tf
-from transformers import TFPreTrainedModel
+from transformers import PretrainedConfig
 
 from .data_types import Pattern
 from .data_types import TokenizedExample
@@ -26,8 +27,10 @@ class ReferenceRecognizer(ABC):
 
 
 class PatternRecognizer(ABC):
-    """ The aim of the Pattern Recognizer is to discover patterns
-    that explain a model prediction. """
+    """
+    The aim of the Pattern Recognizer is to discover patterns that explain
+    a model prediction.
+    """
 
     @abstractmethod
     def __call__(
@@ -35,24 +38,67 @@ class PatternRecognizer(ABC):
             example: TokenizedExample,
             output: Output
     ) -> List[Pattern]:
-        """ To recognize patterns, we provide detailed information about a
+        """
+        To recognize patterns, we provide detailed information about a
         prediction, including hidden states after each layer, attentions from
         each head in each layer, and attention gradients with respect to the
-        model output. The Recognizer returns the most significant patterns. """
+        model output. The Recognizer returns the most significant patterns.
+        """
 
 
-class BasicReferenceRecognizer(ReferenceRecognizer, TFPreTrainedModel):
+@dataclass
+class BasicReferenceRecognizer(ReferenceRecognizer, PretrainedConfig):
     """
-    Briefly, it represents a text and an aspect as two vectors, and predicts
-    that a text relates to an aspect if the cosine similarity is bigger than
-    a threshold. It calculates text and aspect representations by summing
-    their subtoken vectors, context-independent embeddings that come from the
-    embedding first layer.
+    The Basic Reference Recognizer predicts whether a text relates to an
+    aspect or not. Briefly, it represents a text and an aspect as two
+    vectors, and predicts that a text relates to an aspect if the cosine
+    similarity is bigger than a threshold. It calculates text and aspect
+    representations by summing their subtoken vectors, context-independent
+    embeddings that come from the embedding first layer.
 
     This model has only one parameter, nonetheless, we show how to take a use
     of the methods `save_pretrained` and `load_pretrained`. They are useful
     especially for more complex models.
     """
+    threshold: float
+    model_type: str = field(default='reference_recognizer')
+
+    def __call__(
+            self,
+            example: TokenizedExample,
+            output: Output
+    ) -> bool:
+        text_mask, aspect_mask = self.text_aspect_subtoken_masks(example)
+        similarity = self.transform(output.hidden_states, text_mask, aspect_mask)
+        is_reference = bool(similarity > self.threshold)
+        return is_reference
+
+    @staticmethod
+    def transform(
+            hidden_states: tf.Tensor,
+            text_mask: List[bool],
+            aspect_mask: List[bool]
+    ) -> float:
+        hidden_states = hidden_states.numpy()
+        h = hidden_states[0, ...]  # Take embeddings without context.
+        h_t = h[text_mask, :].mean(axis=0)
+        h_a = h[aspect_mask, :].mean(axis=0)
+
+        h_t /= np.linalg.norm(h_t, ord=2)
+        h_a /= np.linalg.norm(h_a, ord=2)
+
+        similarity = h_t @ h_a
+        return similarity
+
+    @staticmethod
+    def text_aspect_subtoken_masks(
+            example: TokenizedExample
+    ) -> Tuple[List[bool], List[bool]]:
+        text = np.zeros(len(example.subtokens)).astype(bool)
+        text[1:len(example.text_subtokens)+1] = True
+        aspect = np.zeros(len(example.subtokens)).astype(bool)
+        aspect[-(len(example.aspect_subtokens) + 1):-1] = True
+        return text.tolist(), aspect.tolist()
 
 
 @dataclass
@@ -132,18 +178,4 @@ class BasicPatternRecognizer(PatternRecognizer):
 
 
 def predict_key_set(patterns: List[Pattern], n: int, k: int = 1):
-    """
-
-    Parameters
-    ----------
-    patterns
-    n
-        The number of elements in the key set.
-    k
-        The number of the sorted (from the most important) candidates
-        of the key sets.
-
-    Returns
-    -------
-
-    """
+    pass
