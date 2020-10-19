@@ -35,25 +35,18 @@ def highlight_sequence(
             for token, weight in zip(tokens, weights)]
 
 
-def highlight_pattern(pattern: Pattern) -> str:
-    rgb = (117, 255, 104) if pattern.importance >= 0 else (250, 102, 109)
+def highlight_pattern(pattern: Pattern, rgb=(180, 180, 180)) -> str:
     w = pattern.importance
-    html_impact = highlight(f'impact {w:.2f}', np.abs(w), rgb=rgb)
+    html_importance = highlight(f'Importance {w:.2f}', w, rgb=rgb, max_alpha=0.9)
     html_patterns = highlight_sequence(pattern.tokens, pattern.weights)
-    highlighted_text = [html_impact, *html_patterns]
+    highlighted_text = [html_importance, *html_patterns]
     highlighted_text = ' '.join(highlighted_text)
     return highlighted_text
 
 
 def display_html(patterns: List[Pattern]):
-    # TODO
-    aspect = example.aspect_representation
-    texts = [f'Words connected with the "{example.aspect}" aspect: <br>']
-    texts.extend(highlight_sequence(aspect.tokens, aspect.look_at))
-    texts.append('<br><br>')
-    texts.append('The model uses these patterns to make a prediction: <br>')
-    texts.extend([highlight_pattern(pattern) + '<br>'
-                  for pattern in example.patterns])
+    texts = []
+    texts.extend([highlight_pattern(pattern) + '<br>' for pattern in patterns])
     text = ' '.join(texts)
     html_text = HTML(text)
     return html_text
