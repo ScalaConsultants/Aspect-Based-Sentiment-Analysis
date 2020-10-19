@@ -42,7 +42,7 @@ class Professor(_Professor):
         is_reference = self.reference_recognizer(example, output) \
             if self.reference_recognizer else None
         patterns = self.pattern_recognizer(example, output) \
-            if self.pattern_recognizer and is_reference else None
+            if self.pattern_recognizer and is_reference is not False else None
         review = Review(is_reference, patterns)
 
         if review.is_reference is False:

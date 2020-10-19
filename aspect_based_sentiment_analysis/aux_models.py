@@ -83,7 +83,7 @@ class BasicPatternRecognizer(PatternRecognizer):
     ) -> List[Pattern]:
         text_mask = self.text_tokens_mask(example)
         w, pattern_vectors = self.transform(output, text_mask, example.alignment)
-        patterns = self.build_patterns(w, example.tokens, pattern_vectors)
+        patterns = self.build_patterns(w, example.text_tokens, pattern_vectors)
         return patterns
 
     def transform(

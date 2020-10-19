@@ -1,41 +1,49 @@
-import pytest
+from unittest import mock
+
 import numpy as np
 import tensorflow as tf
-from aspect_based_sentiment_analysis import TokenizedExample
+
+import aspect_based_sentiment_analysis as absa
 from aspect_based_sentiment_analysis import BasicPatternRecognizer
+from aspect_based_sentiment_analysis import Example
+from aspect_based_sentiment_analysis import PredictedExample
 from aspect_based_sentiment_analysis import alignment
 from aspect_based_sentiment_analysis import Output
 
 
-@pytest.fixture
-def example() -> TokenizedExample:
-    example = TokenizedExample(
-        text='We are soooo great fans of Slack',
-        text_tokens=['we', 'are', 'soooo', 'great', 'fans', 'of', 'slack'],
-        text_subtokens=['we', 'are', 'soo', '##oo', 'great',
-                        'fans', 'of', 'slack'],
-        aspect='Slaeck',
-        aspect_tokens=['slaeck'],
-        aspect_subtokens=['sl', '##ae', '##ck'],
-        tokens=['[CLS]', 'we', 'are', 'soooo', 'great', 'fans', 'of', 'slack',
-                '[SEP]', 'slaeck', '[SEP]'],
-        subtokens=['[CLS]', 'we', 'are', 'soo', '##oo', 'great', 'fans',
-                   'of', 'slack', '[SEP]', 'sl', '##ae', '##ck', '[SEP]'],
-        alignment=[[0], [1], [2], [3, 4], [5], [6], [7],
-                   [8], [9], [10, 11, 12], [13]])
-    return example
+def test_basic_pattern_recognizer_call():
+    text = ("We are great fans of Slack, but we wish the subscriptions "
+            "were more accessible to small startups.")
+    example = Example(text, aspect='price')
+    recognizer = BasicPatternRecognizer()
+    nlp = absa.load('absa/classifier-rest-0.1', pattern_recognizer=recognizer)
+    predictions = nlp.transform([example])
+    prediction = next(predictions)
+    assert isinstance(prediction, PredictedExample)
+    assert not prediction.review.is_reference
+    assert len(prediction.review.patterns) == 5
+    pattern, *_ = prediction.review.patterns
+    assert pattern.importance == 1
+    assert list(zip(pattern.tokens, pattern.weights)) == \
+           [('we', 0.06), ('are', 0.13), ('great', 0.26), ('fans', 0.08),
+            ('of', 0.04), ('slack', 0.05), (',', 0.09), ('but', 0.37),
+            ('we', 0.23), ('wish', 1.0), ('the', 0.28), ('subscriptions', 0.21),
+            ('were', 0.42), ('more', 0.67), ('accessible', 0.2), ('to', 0.26),
+            ('small', 0.11), ('startups', 0.22), ('.', 0.18)]
 
 
-def test_basic_pattern_recognizer_text_token_indices(example):
+def test_basic_pattern_recognizer_text_token_indices():
+    example = mock.Mock()
+    example.text_tokens = ['we', 'are', 'soooo', 'great', 'fans', 'of', 'slack']
+    example.tokens = ['[CLS]', *example.text_tokens, '[SEP]', 'slack', '[SEP]']
     mask = BasicPatternRecognizer.text_tokens_mask(example)
-    assert mask == [False, True, True, True, True, True, True, True, False,
-                    False, False]
+    assert mask == [False, True, True, True, True, True, True, True, False, False, False]
 
 
 def test_basic_pattern_recognizer_transform(monkeypatch):
     recognizer = BasicPatternRecognizer(
         max_patterns=3, is_scaled=False, is_rounded=False)
-    monkeypatch.setattr(alignment, "merge_tensor", lambda x, **kargs: x)
+    monkeypatch.setattr(alignment, "merge_tensor", lambda x, **kwargs: x)
     x = tf.constant([[0, 1, 2, 0],
                      [0, 1, 3, 0],
                      [0, 2, 4, 0],

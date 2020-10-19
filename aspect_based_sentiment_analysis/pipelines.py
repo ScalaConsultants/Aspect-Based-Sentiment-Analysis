@@ -218,8 +218,7 @@ class Pipeline(_Pipeline):
         task = Task(text, aspects, subtasks)
         return task
 
-    def transform(self, examples: Iterable[Example]) -> Iterable[
-        PredictedExample]:
+    def transform(self, examples: Iterable[Example]) -> Iterable[PredictedExample]:
         tokenized_examples = self.tokenize(examples)
         input_batch = self.encode(tokenized_examples)
         output_batch = self.predict(input_batch)
@@ -227,8 +226,7 @@ class Pipeline(_Pipeline):
         return predictions
 
     def tokenize(self, examples: Iterable[Example]) -> List[TokenizedExample]:
-        return [alignment.tokenize(self.tokenizer, e.text, e.aspect) for e in
-                examples]
+        return [alignment.tokenize(self.tokenizer, e.text, e.aspect) for e in examples]
 
     def encode(self, examples: Iterable[TokenizedExample]) -> InputBatch:
         token_pairs = [(e.text_subtokens, e.aspect_subtokens) for e in examples]
@@ -288,8 +286,7 @@ class Pipeline(_Pipeline):
             examples: Iterable[TokenizedExample],
             output_batch: OutputBatch
     ) -> Iterable[PredictedExample]:
-        return (self.professor.review(e, o) for e, o in
-                zip(examples, output_batch))
+        return (self.professor.review(e, o) for e, o in zip(examples, output_batch))
 
     @staticmethod
     def postprocess(
