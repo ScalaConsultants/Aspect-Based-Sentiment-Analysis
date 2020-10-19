@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import tensorflow as tf
 from aspect_based_sentiment_analysis import TokenizedExample
 from aspect_based_sentiment_analysis import BasicPatternRecognizer
@@ -33,7 +34,7 @@ def test_basic_pattern_recognizer_text_token_indices(example):
 
 def test_basic_pattern_recognizer_transform(monkeypatch):
     recognizer = BasicPatternRecognizer(
-        max_patterns=3, is_pattern_scaled=False, is_pattern_rounded=False)
+        max_patterns=3, is_scaled=False, is_rounded=False)
     monkeypatch.setattr(alignment, "merge_tensor", lambda x, **kargs: x)
     x = tf.constant([[0, 1, 2, 0],
                      [0, 1, 3, 0],
@@ -53,9 +54,34 @@ def test_basic_pattern_recognizer_transform(monkeypatch):
                                         [.5, 1.]]  # [2 4] / [4]
 
     recognizer = BasicPatternRecognizer(
-        max_patterns=3, is_pattern_scaled=True, is_pattern_rounded=True)
+        max_patterns=3, is_scaled=True, is_rounded=True)
     w, pattern_vectors = recognizer.transform(
         output, text_mask, token_subtoken_alignment=None)
     assert w.tolist() == [0.5, 1]
     assert pattern_vectors.tolist() == [[.5, .5],
                                         [.5, 1.]]
+
+
+def test_basic_pattern_recognizer_build_patterns():
+    recognizer = BasicPatternRecognizer(
+        max_patterns=3, is_scaled=False, is_rounded=False)
+    w = np.array([0, 3, 2, 0, 1])
+    pattern_vectors = np.array([[0, 0, 0],
+                                [1, 1, 1],
+                                [2, 2, 2],
+                                [3, 3, 3],
+                                [4, 4, 4]])
+    exemplary_tokens = list('abcde')
+    patterns = recognizer.build_patterns(w, exemplary_tokens, pattern_vectors)
+    assert len(patterns) == 3
+    assert all(p.tokens == exemplary_tokens for p in patterns)
+    assert [p.importance for p in patterns] == [3, 2, 1]
+    assert [p.weights for p in patterns] == [[1, 1, 1],
+                                             [2, 2, 2],
+                                             [4, 4, 4]]
+    w = np.array([1, 3, 2, 0, 1])
+    patterns = recognizer.build_patterns(w, exemplary_tokens, pattern_vectors)
+    assert len(patterns) == 3
+    *_, pattern_3 = patterns
+    assert pattern_3.importance == 1
+    assert pattern_3.weights == [0, 0, 0]

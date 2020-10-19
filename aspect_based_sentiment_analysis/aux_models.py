@@ -58,23 +58,22 @@ class BasicReferenceRecognizer(ReferenceRecognizer, TFPreTrainedModel):
 @dataclass
 class BasicPatternRecognizer(PatternRecognizer):
     """
-    The Attention Gradient Product uses attentions and their gradients to
+    The Base Pattern Recognizer uses attentions and their gradients to
     discover patterns which a model uses to make a prediction. The key idea
     is to use attentions and scale them by their gradients with respect to
     the model output (attention-gradient product). The language model
-    constructs an enormous amount of various relations between words.
-    However, only some of them are crucial. Thanks to gradients, we can
-    filter unnecessary patterns out.
+    constructs various relations between words. However, only some of them
+    are crucial. Thanks to gradients, we can filter unnecessary patterns out.
 
-    Note that this heuristic is a rough approximation. Concerns stated in
-    papers like "attentions is not explainable" are still valid. To be more
-    robust, we additionally use gradients and take the mean over model layers
+    Note that this is heuristic, an approximation. Concerns stated in papers
+    like "attentions is not explainable" are still valid. To be more robust,
+    we additionally use gradients and take the mean over model layers
     and heads. Moreover, we provide an exhaustive analysis how accurate this
-    pattern recognizer is. Check out details on the package website.
+    pattern recognizer is. Check out details in the README.
     """
-    max_patterns: int = 10
-    is_pattern_scaled: bool = True
-    is_pattern_rounded: bool = True
+    max_patterns: int = 5
+    is_scaled: bool = True
+    is_rounded: bool = True
     round_decimals: int = 2
 
     def __call__(
@@ -83,9 +82,8 @@ class BasicPatternRecognizer(PatternRecognizer):
             output: Output
     ) -> List[Pattern]:
         text_mask = self.text_tokens_mask(example)
-        w, pattern_vectors = self.transform(output, text_mask,
-                                            example.alignment)
-        patterns = self.build_patterns(w, pattern_vectors)
+        w, pattern_vectors = self.transform(output, text_mask, example.alignment)
+        patterns = self.build_patterns(w, example.tokens, pattern_vectors)
         return patterns
 
     def transform(
@@ -107,9 +105,10 @@ class BasicPatternRecognizer(PatternRecognizer):
         np.fill_diagonal(patterns, max_values)
         patterns /= max_values.reshape(-1, 1)
 
-        if self.is_pattern_scaled:
+        if self.is_scaled:
             patterns *= w.reshape(-1, 1)
-        if self.is_pattern_rounded:
+        if self.is_rounded:
+            w = np.round(w, decimals=self.round_decimals)
             patterns = np.round(patterns, decimals=self.round_decimals)
         return w, patterns
 
@@ -120,9 +119,16 @@ class BasicPatternRecognizer(PatternRecognizer):
         mask[1:len(example.text_tokens) + 1] = True
         return mask.tolist()
 
-    def build_patterns(self, w: np.ndarray, pattern_vectors: np.ndarray) -> \
-    List[int]:
-        pass
+    def build_patterns(
+            self,
+            w: np.ndarray,
+            tokens: List[str],
+            pattern_vectors: np.ndarray
+    ) -> List[Pattern]:
+        # Negate an array to have a descending order
+        indices = np.argsort(w * -1)
+        build = lambda i: Pattern(w[i], tokens, pattern_vectors[i, :].tolist())
+        return [build(i) for i in indices[:self.max_patterns]]
 
 
 def predict_key_set(patterns: List[Pattern], n: int, k: int = 1):
