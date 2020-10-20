@@ -33,7 +33,7 @@ def train_classifier(
                 logits, *details = model_outputs
                 loss_value = classifier_loss(target_labels, logits)
 
-            variables = model.language_model.bert.trainable_variables \
+            variables = model.bert.trainable_variables \
                         + model.classifier.trainable_variables
             grads = tape.gradient(loss_value, variables)
             optimizer.apply_gradients(zip(grads, variables))

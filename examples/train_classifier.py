@@ -13,7 +13,6 @@ from sklearn.model_selection import train_test_split
 import aspect_based_sentiment_analysis as absa
 from aspect_based_sentiment_analysis.training import (
     ClassifierTrainBatch,
-    ClassifierDataset,
     EarlyStopping,
     History,
     Logger,
@@ -61,8 +60,8 @@ def experiment(
     tf.random.set_seed(seed)
 
     # Set up the experiment directory and paths.
-    experiment_dir = os.path.join(ROOT_DIR, 'results',
-                                  f'classifier-{domain}-{ID:03}')
+    name = f'classifier-{domain}-{ID:03}'
+    experiment_dir = os.path.join(ROOT_DIR, 'results', name)
     os.makedirs(experiment_dir, exist_ok=False)
     checkpoints_dir = os.path.join(experiment_dir, 'checkpoints')
     log_path = os.path.join(experiment_dir, 'experiment.log')
@@ -76,8 +75,7 @@ def experiment(
     # equals 10%.
     examples = absa.load_examples(domain=domain)
     train_examples, test_examples = train_test_split(
-        examples, test_size=0.1, random_state=1
-    )
+        examples, test_size=0.1, random_state=1)
 
     # To build our model, we can define a config, which contains all required
     # information needed to build the `BertABSClassifier` model (including
@@ -93,13 +91,12 @@ def experiment(
         model = absa.BertABSClassifier.from_pretrained(
             base_model_name,
             output_attentions=True,
-            output_hidden_states=True
-        )
+            output_hidden_states=True)
         tokenizer = transformers.BertTokenizer.from_pretrained(base_model_name)
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate,
-                                             beta_1=beta_1,
-                                             beta_2=beta_2,
-                                             epsilon=1e-8)
+        optimizer = tf.keras.optimizers.Adam(
+            learning_rate=learning_rate,
+            beta_1=beta_1,
+            beta_2=beta_2)
 
     # To train the model, we have to define a dataset. The dataset can be
     # understood as a non-differential part of the training pipeline. The
@@ -107,8 +104,10 @@ def experiment(
     # understandable batches. You are not obligated to use datasets, you can
     # create your own iterable, which transforms classifier example to the
     # classifier train batches.
-    dataset = ClassifierDataset(train_examples, batch_size, tokenizer)
-    test_dataset = ClassifierDataset(test_examples, batch_size, tokenizer)
+    dataset = absa.training.ClassifierDataset(
+        train_examples, batch_size, tokenizer, num_polarities=3)
+    test_dataset = absa.training.ClassifierDataset(
+        test_examples, batch_size, tokenizer, num_polarities=3)
 
     # To easily adjust optimization process to our needs, we define custom
     # training loops called routines (in contrast to use built-in methods as
@@ -125,8 +124,8 @@ def experiment(
     early_stopping = EarlyStopping(loss_history, patience=3, min_delta=0.001)
     checkpoints = ModelCheckpoint(model, loss_history, checkpoints_dir)
     callbacks = [logger, loss_history, acc_history, checkpoints, early_stopping]
-    absa.training.train_classifier(model, optimizer, dataset, epochs,
-                                   test_dataset, callbacks, strategy)
+    absa.training.train_classifier(
+        model, optimizer, dataset, epochs, test_dataset, callbacks, strategy)
 
     # In the end, we would like to save the model. Our implementation
     # gentle extend the *transformers* lib capabilities, in consequences,
@@ -166,7 +165,6 @@ if __name__ == '__main__':
             study_name=f'classifier-{domain}',
             direction='maximize',
             storage='sqlite:///classifier.db',
-            load_if_exists=True
-        )
+            load_if_exists=True)
         domain_objective = partial(objective, domain=domain)
         study.optimize(domain_objective, n_trials=100)

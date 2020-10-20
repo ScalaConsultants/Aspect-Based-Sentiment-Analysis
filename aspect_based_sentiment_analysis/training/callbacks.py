@@ -96,6 +96,9 @@ class History(Callback, ABC):
         self.test_details[epoch] = []
         self.train_metric.reset_states()
         self.test_metric.reset_states()
+        if self.verbose:
+            message = f'Begin Epoch {epoch:3d}'
+            logger.info(message)
 
     def on_epoch_end(self, epoch: int):
         self.train[epoch] = self.train_metric.result().numpy()
@@ -119,16 +122,25 @@ class History(Callback, ABC):
 class LossHistory(History):
     metric = tf.keras.metrics.Mean
     name: str = 'Loss'
+    verbose: bool = True
 
     def on_train_batch_end(self, i: int, batch, *train_step_outputs):
         loss_value, *model_outputs = train_step_outputs
+        loss_value = loss_value.numpy()
         self.train_metric(loss_value)
-        self.train_details[self.epoch].extend(loss_value.numpy())
+        self.train_details[self.epoch].extend(loss_value)
+        if self.verbose:
+            message = f'Train Batch {i+1:4d}: {loss_value.mean():9.3f}'
+            logger.info(message)
 
     def on_test_batch_end(self, i: int, batch, *test_step_outputs):
         loss_value, *model_outputs = test_step_outputs
+        loss_value = loss_value.numpy()
         self.test_metric(loss_value)
-        self.test_details[self.epoch].extend(loss_value.numpy())
+        self.test_details[self.epoch].extend(loss_value)
+        if self.verbose:
+            message = f'Test Batch {i+1:4d}: {loss_value.mean():9.3f}'
+            logger.info(message)
 
 
 @dataclass
