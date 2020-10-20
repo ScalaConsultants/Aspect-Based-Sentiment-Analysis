@@ -38,6 +38,7 @@ from .pipelines import Pipeline
 from .text_splitters import sentencizer
 
 from . import plots
+from .plots import summary
 from .plots import display
 
 from .professors import Professor

@@ -4,7 +4,7 @@ from typing import Tuple
 import numpy as np
 from IPython.core.display import display as ipython_display
 from IPython.core.display import HTML
-from .data_types import Pattern, Review
+from .data_types import Pattern, PredictedExample, Review
 
 
 def html_escape(text):
@@ -37,7 +37,8 @@ def highlight_sequence(
 
 def highlight_pattern(pattern: Pattern, rgb=(180, 180, 180)) -> str:
     w = pattern.importance
-    html_importance = highlight(f'Importance {w:.2f}', w, rgb=rgb, max_alpha=0.9)
+    html_importance = highlight(f'Importance {w:.2f}', w, rgb=rgb,
+                                max_alpha=0.9)
     html_patterns = highlight_sequence(pattern.tokens, pattern.weights)
     highlighted_text = [html_importance, *html_patterns]
     highlighted_text = ' '.join(highlighted_text)
@@ -58,5 +59,10 @@ def display_patterns(patterns: List[Pattern]):
 
 
 def display(review: Review):
-    html_text = display_html(review.patterns)
-    return ipython_display(html_text)
+    return display_patterns(review.patterns)
+
+
+def summary(example: PredictedExample):
+    print(f'{str(example.sentiment)} for "{example.aspect}"')
+    rounded_scores = np.round(example.scores, decimals=3)
+    print(f'Scores (neutral/negative/positive): {rounded_scores}')
