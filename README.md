@@ -2,17 +2,14 @@
 ### Aspect Based Sentiment Analysis
 
 The task is to classify the sentiment of potentially long texts for several aspects.
-In building this package, we focus on two things.
-Firstly, the package works as a service.
-It can be freely adjusted and extended to your needs.
-It is standalone and scalable.
-You just benefit from the fine-tuned State of the Art models.
-Secondly, we wish to explain model decisions,
-so you can infer how much predictions are reliable.
-We desire to provide the robust and stable ML package. 
+The key idea is to build a modern NLP package which supports explanations of model predictions.
+The approximated decision explanations help you to infer how reliable predictions are.
+The package is standalone, scalable, and can be freely extended to your needs.
+In the article **Do You Trust in Aspect-Based Sentiment Analysis? Testing and Explaining Model Behaviors** ([Medium]()),
+we discuss the package in detail.
 
 
-There are over 100 repositories on GitHub around this problem
+There are over 100 repositories on GitHub around sentiment analysis 
 <sup>
 [1](https://github.com/songyouwei/ABSA-PyTorch)
 [2](https://github.com/jimmyyfeng/TD-LSTM)
@@ -24,12 +21,8 @@ There are over 100 repositories on GitHub around this problem
 [8](https://github.com/pedrobalage/SemevalAspectBasedSentimentAnalysis)
 [9](https://github.com/ganeshjawahar/mem_absa)
 </sup>.
-All of them are hard to commercialize and reuse open-sourced research projects. 
-Their purpose is to turn the evaluation score up. 
-It is hard to go through the entire process and reproduce results from scratch. 
-The pre/post-processing is divided into stages that makes it hard to use.
-Last but not least, there is no/little effort to understand model reasoning.
-We try to clean this excellent research up. 
+All of them are hard to commercialize and reuse open-source research projects.
+We clean up this excellent research. 
 Please give a star if you like the project. 
 This is important to keep this project alive.
 
@@ -37,12 +30,12 @@ This is important to keep this project alive.
 
 ### Quick Start
 
-To start, use the fine-tuned model.
-The `load` function downloads a model into the package directory, 
-sets up the Tensorflow model and returns the ready-to-use pipeline.
-The pipeline `nlp` wraps the model and keeps non-differential pre/post-processing needed 
-to make a prediction and to interpret results.
-Please take a look at the details [here](aspect_based_sentiment_analysis/pipelines.py).
+The aim is to classify the sentiments of a text concerning given aspects. 
+We have made several assumptions to make the service more helpful. 
+Namely, the text being processed might be a full-length document, 
+the aspects could contain several words (so may be defined more precisely), 
+and most importantly, the service should provide an approximate explanation of any decision made, 
+therefore, a user will be able to immediately infer the reliability of a prediction.
 
 ```python
 import aspect_based_sentiment_analysis as absa
@@ -56,52 +49,127 @@ assert price.sentiment == absa.Sentiment.negative
 assert slack.sentiment == absa.Sentiment.positive
 ```
 
-Now, we wish to infer how much predictions are reliable.
-In our task, we are curious about two things at most. 
-Firstly, we want to be sure that the model connects the correct
-word or words with the aspect. If the model does it wrong, the sentiment
-concerns the different entity. Secondly, even if the model recognized
-the aspect correctly, we need to understand the model reasoning better.
-To do so, we wish to discovers patterns, a weighted sequence
-of words, and their approximated impact to the prediction. We want to
-avoid a situation wherein a single word or weird word combination
-triggers the model. 
+Above is an example of how quickly you can start to benefit from our open-source package. 
+All you need to do is to call the `load` function which sets up the ready-to-use pipeline `nlp`. 
+You can explicitly pass the model name you wish to use (a list of available models is below), or a path to your model. 
+In spite of the simplicity of using fine-tune models, we encourage you to build a custom model which reflects your data. 
+The predictions will be more accurate and stable. 
 
-```jupyter
-# Verify the model decision
-html = absa.probing.explain(slack)
-display(html)
+<br>
+
+### Pipeline: Keeping the Process in Shape
+
+The pipeline provides an easy-to-use interface for making predictions.
+Even a highly accurate model will be useless if it is unclear how to correctly prepare the inputs and how to interpret the outputs.
+To make things clear, we have introduced a pipeline that is closely linked to a model.
+It is worth to know how to deal with the whole process, especially if you plan to build a custom model.
+
+
+<p align="middle">
+<img src="examples/pipeline.png" width="600" alt=""/>
+</p>
+
+
+The diagram above illustrates an overview of the pipeline stages.
+As usual, at the very beginning, we pre-process the inputs.
+We convert the text and the aspects into a `task` which keeps examples (pairs of a text and an aspect) that we can then further tokenize, encode and pass to the model.
+The model makes a prediction, and here is a change.
+Instead of directly post-processing the model outputs, we have added a review process wherein 
+the independent component called the `professor` supervises and explains a model prediction.
+The professor might dismiss a model prediction if the model internal states or outputs seem suspicious.
+In the article [here], we discuss in detail how the model and the professor work.
+
+````python
+import aspect_based_sentiment_analysis as absa
+
+name = 'absa/classifier-rest-0.1'
+model = absa.BertABSClassifier.from_pretrained(name)
+tokenizer = absa.BertTokenizer.from_pretrained(name)
+professor = absa.Professor(...)     # Explained in detail later on.
+text_splitter = absa.sentencizer()  # The English CNN model from SpaCy.
+nlp = absa.Pipeline(model, tokenizer, professor, text_splitter)
+
+# Break down the pipeline `call` method.
+task = nlp.preprocess(text=..., aspects=...)
+tokenized_examples = nlp.tokenize(task.examples)
+input_batch = nlp.encode(tokenized_examples)
+output_batch = nlp.predict(input_batch)
+predictions = nlp.review(tokenized_examples, output_batch)
+completed_task = nlp.postprocess(task, predictions)
+````
+
+Above is an example how to initialize the pipeline directly,
+and we revise in code the process being discussed by exposing what calling the pipeline does under the hood.
+We have omitted a lot of insignificant details but there's one thing we would like to highlight.
+The sentiment of long texts tends to be fuzzy and neutral. 
+Therefore, you might want to split a text into smaller independent chunks, sometimes called spans. 
+These could include just a single sentence or several sentences.
+It depends on how the `text_splitter` works. 
+In this case, we are using the SpaCy CNN model, which splits a document into single sentences, 
+and, as a result each sentence can then be processed independently.
+Note that longer spans have richer context information, so a model will have more information to consider.
+Please take a look at the pipeline details [here](aspect_based_sentiment_analysis/pipelines.py).
+
+<br>
+
+### Supervising Model Predictions
+
+It's time to explain model reasoning, something which is extremely hard.
+The key concept is to frame the problem of explaining a model decision as an independent task wherein
+an aux. model, the `pattern recognizer`, predicts patterns (weighted compositions of tokens, presented below) given model inputs, outputs, and internal states.
+Due to time constraints, at first we did not want to research and build a trainable pattern recognizer.
+Instead, we decided to start with a pattern recognizer that originates from our observations, prior knowledge.
+The model, the aspect-based sentiment classifier, is based on the transformer architecture wherein self-attention layers hold the most parameters.
+Therefore, one might conclude that understanding self-attention layers is a good proxy to understanding a model as a whole.
+Accordingly, there are many articles that show how to explain a model decision 
+in simple terms, using attention values (internal states of self-attention layers) straightforwardly.
+Inspired by these articles, we have also analyzed attention values (processing training examples) to search for any meaningful insights.
+This exploratory study has led us to create the `BasicPatternRecognizer` (details are [here](aspect_based_sentiment_analysis/aux_models.py)).
+
+```python
+import aspect_based_sentiment_analysis as absa
+
+recognizer = absa.aux_models.BasicPatternRecognizer()
+nlp = absa.load(pattern_recognizer=recognizer)
+completed_task = nlp(text=..., aspects=['slack', 'price'])
+[slack, price] = completed_task.examples
+
+absa.summary(slack)
+absa.display(slack.review)
 ```
 
 <p align="middle">
-<img src="examples/patterns.png" width="600" alt=""/>
+<img src="examples/slack-patterns.png" width="600" alt=""/>
 </p>
 
-Here, we have two things.
-Firstly, we see the model's definition of the "slack" aspect.
-The model pays attention to the word "slack" correctly.
-Nonetheless, we need to understand that
-the sentiment rather concerns the whole collocation "great fans of slack".
-Secondly, we go through patterns that impact on a prediction.
-We can cluster patterns into two groups.
-The patterns in the first group (marked as green) support a decision 
-(in this case, push towards the positive sentiment).
-Basically, they represent different combinations of weighted words: great, fans, slack.
-The patterns in the second group (marked as red) disagree with a decision.
-Interestingly, the model recognizes the complex structure like "wish ... more".
-Please note that this analysis is a rough approximation.
-Take a look at the details [here](aspect_based_sentiment_analysis/recognizers.py).
+```python
+absa.summary(price)
+absa.display(price.review)
+```
+
+<p align="middle">
+<img src="examples/price-patterns.png" width="600" alt=""/>
+</p>
+
+The explanations are only useful if they are correct.
+To form the basic pattern recognizer, we have made several assumptions (prior beliefs),
+therefore we should be careful about interpreting the explanations too literally.
+Even if the attention values have thought-provoking properties, for example, 
+they encode rich linguistic relationships, there is no proven chain of causation.
+There are a lot of articles that illustrate various concerns why drawing conclusions about model reasoning
+directly from attentions might be misleading.
+In the article [here], we validate and analyse explanations in detail.
 
 <br>
 
 ### Ready-to-Use Models
 
-In the table, we present the state of the art results on the most common evaluation dataset 
-(SemEval 2014 Task 4 SubTask 2, details [here](http://alt.qcri.org/semeval2014/task4/)).
-The project assumption is to use the published architectures
-(even if I was tempted to do my own).
-We recommend `bert-ada` for its simplicity (default).
-Take a look at the our model implementation details [here](aspect_based_sentiment_analysis/models.py).
+In the table below, we present the State of the Art results on the SemEval 2014 evaluation dataset 
+(dataset details are [here](http://alt.qcri.org/semeval2014/task4/)).
+There are two available models for the restaurant and the laptop domains.
+The model implementation details [here](aspect_based_sentiment_analysis/models.py).
+The hyper-parameters optimization (with the explanation how to train a model) is [here](examples/train_classifier.py).
+You can easily reproduce our evaluations, look at the performance tests [here](tests/test_performance.py).
 
 | Model Name | Acc Rest | Acc Lapt | Release |
 | :--- |  :---:  |  :---:  | :---: |
@@ -110,13 +178,9 @@ Take a look at the our model implementation details [here](aspect_based_sentimen
 | BERT-ADA   [[code]](https://github.com/deepopinion/domain-adapted-atsc)[[paper]](http://arxiv.org/abs/1908.11860)             | 87.89  |  80.23  | Nov 2019 |
 | BAT        [[code]](https://github.com/akkarimi/Adversarial-Training-for-ABSA)[[paper]](https://arxiv.org/pdf/2001.11316.pdf) | 86.03  |  79.35  | Feb 2020 |
 ||
-| `bert-ada-rest-0.1` | 86.51 |
-| `bert-ada-lapt-0.1` | | 80.23
+| `classifier-rest-0.1` | 86.51 |
+| `classifier-lapt-0.1` | | 80.23
 
-There are two available models for the restaurant and laptop domains.
-The hyper-parameters optimization with the explanation how to train a model is [here](examples/train_classifier.py).
-You can easily reproduce our evaluations.
-Look at the performance tests [here](tests/test_performance.py).
 
 <br>
 
@@ -136,26 +200,9 @@ conda activate Aspect-Based-Sentiment-Analysis
 
 <br>
 
-### Further Research
-
-Even the task is narrow and well-defined, there is still massive work to do.
-Below we present our few open research issues.
-We encourage you to help us to improve this package.
-
-- Provide a concrete confidence measure.
-- Build the separated model which correlates patterns and linguistics dependencies.
-- Process several aspects at once.
-- Adapt models across different domains. 
-- Proper model calibrations (neutral).
-- Robust evaluations (adversarial attacks).
-- Distill the model (compress the tuned model).
-- More interactive visualization tools.
-
-<br>
-
 ### References
 
-How to use BERT for the Aspect-Based Sentiment Analysis:
+How to use language models in the Aspect-Based Sentiment Analysis:
 - Utilizing BERT for Aspect-Based Sentiment Analysis via Constructing Auxiliary Sentence (NAACL 2019)
 [[code]](https://github.com/HSLCY/ABSA-BERT-pair)[[paper]](https://www.aclweb.org/anthology/N19-1035/)
 - BERT Post-Training for Review Reading Comprehension and Aspect-based Sentiment Analysis (NAACL 2019)
