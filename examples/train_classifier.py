@@ -25,6 +25,7 @@ from aspect_based_sentiment_analysis.training import (
 class CategoricalAccuracyHistory(History):
     name: str = 'Accuracy'
     metric: Callable = tf.keras.metrics.CategoricalAccuracy
+    verbose: bool = False
 
     @property
     def best_result(self) -> float:

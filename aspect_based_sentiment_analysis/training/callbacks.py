@@ -97,14 +97,14 @@ class History(Callback, ABC):
         self.train_metric.reset_states()
         self.test_metric.reset_states()
         if self.verbose:
-            message = f'Begin Epoch {epoch:3d}'
+            message = f'Begin Epoch {epoch:4d}'
             logger.info(message)
 
     def on_epoch_end(self, epoch: int):
         self.train[epoch] = self.train_metric.result().numpy()
         self.test[epoch] = self.test_metric.result().numpy()
         if self.verbose:
-            message = f'Epoch {epoch:3d} {self.name:12}    ' \
+            message = f'Epoch {epoch:4d} {self.name:12}    ' \
                       f'Average Train {self.train[epoch]:.5f}    ' \
                       f'Average Test {self.test[epoch]:.5f}'
             logger.info(message)

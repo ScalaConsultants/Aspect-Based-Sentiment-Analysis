@@ -23,8 +23,7 @@ def test_loss_history_callback():
         for epoch in np.arange(1, 10 + 1):
             history.on_epoch_begin(epoch)
             for batch in range(100):
-                train_loss = np.random.normal(loc=11 - epoch, scale=0.5,
-                                              size=32)
+                train_loss = np.random.normal(loc=11-epoch, scale=0.5, size=32)
                 tf_train_loss = tf.convert_to_tensor(train_loss)
                 train_step_outputs = [tf_train_loss, 'model_outputs']
                 history.on_train_batch_end(batch, batch_input, *train_step_outputs)
@@ -47,7 +46,7 @@ def test_loss_history_callback():
     assert round(np.array(details).mean()) == 1
 
     # Check log events
-    assert len(log.records) == 10
+    assert len(log.records) == 2020
     assert log.records[0].name == 'absa.callbacks'
 
 
