@@ -1,7 +1,6 @@
 from enum import IntEnum
 from dataclasses import asdict, dataclass
 from typing import Dict
-from typing import OrderedDict
 from typing import Iterable
 from typing import List
 from typing import Tuple
@@ -125,7 +124,7 @@ class Task:
     into subtasks, where each subtask concerns one aspect. """
     text: str
     aspects: List[str]
-    subtasks: OrderedDict[str, SubTask]
+    subtasks: Dict[str, SubTask]    # OrderedDict (python 3.6 compatibility)
 
     @property
     def indices(self) -> List[Tuple[int, int]]:

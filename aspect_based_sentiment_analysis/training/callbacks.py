@@ -77,9 +77,9 @@ class Logger(Callback):
 @dataclass
 class History(Callback, ABC):
     name: str
+    metric: Callable[[], tf.keras.metrics.Metric]
     epoch: int = 0
-    verbose: bool = True
-    metric: Callable[[], tf.keras.metrics.Metric] = tf.keras.metrics.Mean
+    verbose: bool = False
     train: Dict = field(default_factory=dict)
     test: Dict = field(default_factory=dict)
     train_details: Dict = field(default_factory=dict)
@@ -96,17 +96,14 @@ class History(Callback, ABC):
         self.test_details[epoch] = []
         self.train_metric.reset_states()
         self.test_metric.reset_states()
-        if self.verbose:
-            message = f'Begin Epoch {epoch:4d}'
-            logger.info(message)
 
     def on_epoch_end(self, epoch: int):
         self.train[epoch] = self.train_metric.result().numpy()
         self.test[epoch] = self.test_metric.result().numpy()
         if self.verbose:
-            message = f'Epoch {epoch:4d} {self.name:12}    ' \
-                      f'Average Train {self.train[epoch]:.5f}    ' \
-                      f'Average Test {self.test[epoch]:.5f}'
+            message = f'Epoch {epoch:4d} {self.name:10} ' \
+                      f'Average Train {self.train[epoch]:1.3f}    ' \
+                      f'Average Test {self.test[epoch]:1.3f}'
             logger.info(message)
 
     @abstractmethod
@@ -120,9 +117,9 @@ class History(Callback, ABC):
 
 @dataclass
 class LossHistory(History):
-    metric = tf.keras.metrics.Mean
     name: str = 'Loss'
-    verbose: bool = True
+    metric: Callable = tf.metrics.Mean
+    verbose: bool = False
 
     def on_train_batch_end(self, i: int, batch, *train_step_outputs):
         loss_value, *model_outputs = train_step_outputs
@@ -130,7 +127,7 @@ class LossHistory(History):
         self.train_metric(loss_value)
         self.train_details[self.epoch].extend(loss_value)
         if self.verbose:
-            message = f'Train Batch {i+1:4d}: {loss_value.mean():9.3f}'
+            message = f'Train Batch {i+1:4d} Loss: {loss_value.mean():9.3f}'
             logger.info(message)
 
     def on_test_batch_end(self, i: int, batch, *test_step_outputs):
@@ -139,7 +136,7 @@ class LossHistory(History):
         self.test_metric(loss_value)
         self.test_details[self.epoch].extend(loss_value)
         if self.verbose:
-            message = f'Test Batch {i+1:4d}: {loss_value.mean():9.3f}'
+            message = f'Test Batch {i+1:4d} Loss: {loss_value.mean():9.3f}'
             logger.info(message)
 
 

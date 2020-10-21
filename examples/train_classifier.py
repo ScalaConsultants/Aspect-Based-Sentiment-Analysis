@@ -1,5 +1,6 @@
 import os
 import logging
+import shutil
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable
@@ -55,14 +56,15 @@ def experiment(
         learning_rate: float = 3e-5,
         beta_1: float = 0.9,
         beta_2: float = 0.999,
-        seed: int = 1
+        seed: int = 1,
+        remove_checkpoints: bool = True
 ) -> float:
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
     # Set up the experiment directory and paths.
     name = f'classifier-{domain}-{ID:03}'
-    experiment_dir = os.path.join(ROOT_DIR, 'results', name)
+    experiment_dir = os.path.join(ROOT_DIR, 'optimization', name)
     os.makedirs(experiment_dir, exist_ok=False)
     checkpoints_dir = os.path.join(experiment_dir, 'checkpoints')
     log_path = os.path.join(experiment_dir, 'experiment.log')
@@ -120,8 +122,8 @@ def experiment(
     # (which have a similar interface as the tf.keras.Callback). Please take
     # a look at the `train_classifier` function for more details.
     logger = Logger(file_path=log_path)
-    loss_history = LossHistory()
-    acc_history = CategoricalAccuracyHistory()
+    loss_history = LossHistory(verbose=False)
+    acc_history = CategoricalAccuracyHistory(verbose=True)
     early_stopping = EarlyStopping(loss_history, patience=3, min_delta=0.001)
     checkpoints = ModelCheckpoint(model, loss_history, checkpoints_dir)
     callbacks = [logger, loss_history, acc_history, checkpoints, early_stopping]
@@ -135,7 +137,15 @@ def experiment(
     best_model = absa.BertABSClassifier.from_pretrained(checkpoints.best_model_dir)
     best_model.save_pretrained(experiment_dir)
     tokenizer.save_pretrained(experiment_dir)
+
+    # Serialize callbacks.
+    del loss_history.test_metric, loss_history.train_metric
+    del acc_history.test_metric, acc_history.train_metric
     absa.utils.save([logger, loss_history, acc_history], callbacks_path)
+
+    # Clean up checkpoints if needed.
+    if remove_checkpoints:
+        shutil.rmtree(checkpoints_dir)
 
     # Return the experiment metric value to do the hyper-parameters tuning.
     return acc_history.best_result
@@ -143,7 +153,7 @@ def experiment(
 
 def objective(trial, domain: str):
     params = {
-        'ID': trial.trial_id,
+        'ID': trial.number,
         'domain': domain,
         'base_model_name': PRETRAINED_MODEL_NAMES[domain],
         'epochs': 20,
@@ -165,7 +175,7 @@ if __name__ == '__main__':
         study = optuna.create_study(
             study_name=f'classifier-{domain}',
             direction='maximize',
-            storage='sqlite:///classifier.db',
+            storage='sqlite:///optimization.db',
             load_if_exists=True)
         domain_objective = partial(objective, domain=domain)
         study.optimize(domain_objective, n_trials=100)
