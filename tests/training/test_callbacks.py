@@ -1,6 +1,8 @@
 import os
+from unittest import mock
 from unittest.mock import MagicMock
 
+import pytest
 import numpy as np
 import tensorflow as tf
 from testfixtures import LogCapture
@@ -11,12 +13,37 @@ from aspect_based_sentiment_analysis import (
 )
 from aspect_based_sentiment_analysis.training import (
     LossHistory,
-    ModelCheckpoint
+    ModelCheckpoint,
+    EarlyStopping,
+    StopTraining
 )
 
 
+def test_early_stopping():
+    history = mock.Mock()
+    history.test = {1: 10, 2: 8, 3: 5, 4: 2, 5:2, 6:2, 7:2}
+    callback = EarlyStopping(history, patience=1, min_delta=1, direction='minimize')
+    with pytest.raises(StopTraining):
+        loops = 0
+        for epoch in history.test:
+            callback.on_epoch_end(epoch)
+            loops += 1
+    assert loops == 4
+    assert epoch == 5   # when stopped
+
+    history.test = {1: 3, 2: 4, 3: 5, 4: 5, 5:5, 6:5, 7:5}
+    callback = EarlyStopping(history, patience=3, min_delta=1, direction='maximize')
+    with pytest.raises(StopTraining):
+        loops = 0
+        for epoch in history.test:
+            callback.on_epoch_end(epoch)
+            loops += 1
+    assert loops == 5
+    assert epoch == 6   # when stopped
+
+
 def test_loss_history_callback():
-    history = LossHistory()
+    history = LossHistory(verbose=True)
     # The simplified routine.
     batch_input = None
     with LogCapture() as log:
@@ -46,7 +73,7 @@ def test_loss_history_callback():
     assert round(np.array(details).mean()) == 1
 
     # Check log events
-    assert len(log.records) == 2020
+    assert len(log.records) == 2010
     assert log.records[0].name == 'absa.callbacks'
 
 

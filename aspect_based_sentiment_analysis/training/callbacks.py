@@ -175,21 +175,30 @@ class ModelCheckpoint(Callback):
 
 @dataclass
 class EarlyStopping(Callback):
-    loss_history: LossHistory
+    history: History
     patience: int = 0
     min_delta: float = 0
     verbose: bool = True
     best_result: float = np.inf
     current_patience: int = 0
+    direction: str = 'minimize'
+
+    def __post_init__(self):
+        if self.direction not in ['minimize', 'maximize']:
+            raise ValueError
+        if self.direction == 'maximize':
+            self.best_result = 0
 
     def on_epoch_end(self, epoch: int):
         """ """
-        result = self.loss_history.test[epoch]
-        is_better = (self.best_result - result) > self.min_delta
+        result = self.history.test[epoch]
+        diff = self.best_result - result
+        is_better = diff > self.min_delta if self.direction == 'minimize' \
+               else diff < self.min_delta * -1
         if is_better:
             self.best_result = result
             self.current_patience = 0
             return
         self.current_patience += 1
-        if self.current_patience > self.patience:
+        if self.current_patience >= self.patience:
             raise StopTraining

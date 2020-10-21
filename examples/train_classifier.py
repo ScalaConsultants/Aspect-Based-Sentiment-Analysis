@@ -124,7 +124,7 @@ def experiment(
     logger = Logger(file_path=log_path)
     loss_history = LossHistory(verbose=False)
     acc_history = CategoricalAccuracyHistory(verbose=True)
-    early_stopping = EarlyStopping(loss_history, patience=3, min_delta=0.001)
+    early_stopping = EarlyStopping(acc_history, patience=3, min_delta=0.01, direction='maximize')
     checkpoints = ModelCheckpoint(model, loss_history, checkpoints_dir)
     callbacks = [logger, loss_history, acc_history, checkpoints, early_stopping]
     absa.training.train_classifier(
@@ -138,12 +138,12 @@ def experiment(
     best_model.save_pretrained(experiment_dir)
     tokenizer.save_pretrained(experiment_dir)
 
-    # Serialize callbacks.
+    # Serialize history callbacks (remove complex objects from TensorFlow).
     del loss_history.test_metric, loss_history.train_metric
     del acc_history.test_metric, acc_history.train_metric
-    absa.utils.save([logger, loss_history, acc_history], callbacks_path)
+    absa.utils.save([loss_history, acc_history], callbacks_path)
 
-    # Clean up checkpoints if needed.
+    # Clean up checkpoints if needed (e.g. due to disc space constraints).
     if remove_checkpoints:
         shutil.rmtree(checkpoints_dir)
 
