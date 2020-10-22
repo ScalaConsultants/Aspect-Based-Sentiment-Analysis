@@ -122,7 +122,7 @@ def experiment(
     loss_history = LossHistory(verbose=False)
     acc_history = CategoricalAccuracyHistory(verbose=True)
     early_stopping = EarlyStopping(acc_history, patience=3, min_delta=0.01, direction='maximize')
-    checkpoints = ModelCheckpoint(model, loss_history, checkpoints_dir)
+    checkpoints = ModelCheckpoint(model, acc_history, checkpoints_dir, direction='maximize')
     callbacks = [logger, loss_history, acc_history, checkpoints, early_stopping]
     absa.training.train_classifier(
         model, optimizer, dataset, epochs, test_dataset, callbacks, strategy)

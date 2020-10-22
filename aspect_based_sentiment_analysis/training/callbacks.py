@@ -143,14 +143,20 @@ class LossHistory(History):
 @dataclass
 class ModelCheckpoint(Callback):
     model: transformers.TFPreTrainedModel
-    loss_history: LossHistory
+    history: History
     home_dir: str = 'checkpoints'
     best_result: float = np.inf
     best_model_dir: str = ''
     verbose: bool = True
+    direction: str = 'minimize'
 
     def __post_init__(self):
         """ Create the directory for saving checkpoints. """
+        if self.direction not in ['minimize', 'maximize']:
+            raise ValueError
+        if self.direction == 'maximize':
+            self.best_result = 0
+
         if not os.path.isdir(self.home_dir):
             abs_path = os.path.abspath(self.home_dir)
             text = f'Make a checkpoint directory: {abs_path}'
@@ -159,8 +165,10 @@ class ModelCheckpoint(Callback):
 
     def on_epoch_end(self, epoch: int):
         """ Pass the `ModelCheckpoint` callback after the `LossHistory`. """
-        result = self.loss_history.test[epoch]
-        if result < self.best_result:
+        result = self.history.test[epoch]
+        diff = self.best_result - result
+        is_better = diff > 0 if self.direction == 'minimize' else diff < 0
+        if is_better:
             name = f'epoch-{epoch:02d}-{result:.2f}'
             model_dir = os.path.join(self.home_dir, name)
             os.mkdir(model_dir)
