@@ -91,10 +91,7 @@ def experiment(
     # can be used as well.
     strategy = tf.distribute.OneDeviceStrategy('GPU')
     with strategy.scope():
-        model = absa.BertABSClassifier.from_pretrained(
-            base_model_name,
-            output_attentions=True,
-            output_hidden_states=True)
+        model = absa.BertABSClassifier.from_pretrained(base_model_name)
         tokenizer = transformers.BertTokenizer.from_pretrained(base_model_name)
         optimizer = tf.keras.optimizers.Adam(
             learning_rate=learning_rate,
@@ -168,8 +165,8 @@ if __name__ == '__main__':
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     os.chdir(ROOT_DIR)
     PRETRAINED_MODEL_NAMES = {
-        'restaurant': 'absa/bert-rest-0.1',
-        'laptop': 'absa/bert-lapt-0.1'
+        'restaurant': 'absa/bert-rest-0.2',
+        'laptop': 'absa/bert-lapt-0.2'
     }
     for domain in ['restaurant', 'laptop']:
         study = optuna.create_study(
