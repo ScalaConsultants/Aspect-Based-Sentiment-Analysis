@@ -1,3 +1,4 @@
+import argparse
 import os
 import logging
 import shutil
@@ -162,17 +163,23 @@ def objective(trial, domain: str):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Classifier Optimization')
+    parser.add_argument('--domain', action='store', required=True,
+                        help='The dataset domain: `restaurant` or `laptop`')
+    parser.add_argument('--n_trials', action='store', type=int, default=100,
+                        help='The number of trials.')
+    args = parser.parse_args()
+
     ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
     os.chdir(ROOT_DIR)
     PRETRAINED_MODEL_NAMES = {
         'restaurant': 'absa/bert-rest-0.2',
         'laptop': 'absa/bert-lapt-0.2'
     }
-    for domain in ['restaurant', 'laptop']:
-        study = optuna.create_study(
-            study_name=f'classifier-{domain}',
-            direction='maximize',
-            storage='sqlite:///optimization.db',
-            load_if_exists=True)
-        domain_objective = partial(objective, domain=domain)
-        study.optimize(domain_objective, n_trials=100)
+    study = optuna.create_study(
+        study_name=f'classifier-{args.domain}',
+        direction='maximize',
+        storage='sqlite:///optimization.db',
+        load_if_exists=True)
+    domain_objective = partial(objective, domain=args.domain)
+    study.optimize(domain_objective, n_trials=args.n_trials)
