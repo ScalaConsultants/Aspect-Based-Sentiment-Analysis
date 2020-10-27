@@ -21,7 +21,7 @@ DOWNLOADS_DIR = os.path.join(ROOT_DIR, 'downloads')
 
 
 def load(
-        name: str = 'absa/classifier-rest-0.1',
+        name: str = 'absa/classifier-rest-0.2',
         text_splitter: Callable[[str], List[str]] = None,
         reference_recognizer: ReferenceRecognizer = None,
         pattern_recognizer: PatternRecognizer = None,

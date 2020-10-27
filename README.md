@@ -66,7 +66,7 @@ It is worth to know how to deal with the whole process, especially if you plan t
 
 
 <p align="middle">
-<img src="examples/pipeline.png" width="600" alt=""/>
+<img src="examples/images/pipeline.png" width="600" alt=""/>
 </p>
 
 
@@ -82,7 +82,7 @@ In the article [here], we discuss in detail how the model and the professor work
 ````python
 import aspect_based_sentiment_analysis as absa
 
-name = 'absa/classifier-rest-0.1'
+name = 'absa/classifier-rest-0.2'
 model = absa.BertABSClassifier.from_pretrained(name)
 tokenizer = absa.BertTokenizer.from_pretrained(name)
 professor = absa.Professor(...)     # Explained in detail later on.
@@ -139,7 +139,7 @@ absa.display(slack.review)
 ```
 
 <p align="middle">
-<img src="examples/slack-patterns.png" width="600" alt=""/>
+<img src="examples/images/slack-patterns.png" width="600" alt=""/>
 </p>
 
 ```python
@@ -148,7 +148,7 @@ absa.display(price.review)
 ```
 
 <p align="middle">
-<img src="examples/price-patterns.png" width="600" alt=""/>
+<img src="examples/images/price-patterns.png" width="600" alt=""/>
 </p>
 
 The explanations are only useful if they are correct.
@@ -178,8 +178,8 @@ You can easily reproduce our evaluations, look at the performance tests [here](t
 | BERT-ADA   [[code]](https://github.com/deepopinion/domain-adapted-atsc)[[paper]](http://arxiv.org/abs/1908.11860)             | 87.89  |  80.23  | Nov 2019 |
 | BAT        [[code]](https://github.com/akkarimi/Adversarial-Training-for-ABSA)[[paper]](https://arxiv.org/pdf/2001.11316.pdf) | 86.03  |  79.35  | Feb 2020 |
 ||
-| `classifier-rest-0.1` | 86.51 |
-| `classifier-lapt-0.1` | | 80.23
+| `classifier-rest-0.2` | 85.17 |
+| `classifier-lapt-0.2` | | 79.78
 
 
 <br>

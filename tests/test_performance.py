@@ -21,12 +21,30 @@ def test_inference():
 
 
 @pytest.mark.slow
-def test_semeval_classification_restaurants():
+def test_semeval_classification_restaurant():
     examples = absa.load_examples(
         dataset='semeval', domain='restaurant', test=True)
-    nlp = absa.load('absa/classifier-rest-0.1')
+    nlp = absa.load('absa/classifier-rest-0.2')
     metric = ConfusionMatrix(num_classes=3)
     confusion_matrix = nlp.evaluate(examples, metric, batch_size=32)
     confusion_matrix = confusion_matrix.numpy()
     accuracy = np.diagonal(confusion_matrix).sum() / confusion_matrix.sum()
-    assert round(accuracy, 3) >= 0.86
+    assert round(accuracy, 4) >= .8517
+    # The model is chosen based on the dev set. Out of curiosity, we've
+    # verified (on the test set) top 5 models and the best performing is here:
+    # 'absa/classifier-rest-0.2.1': .8732
+
+
+@pytest.mark.slow
+def test_semeval_classification_laptop():
+    examples = absa.load_examples(
+        dataset='semeval', domain='laptop', test=True)
+    nlp = absa.load('absa/classifier-lapt-0.2')
+    metric = ConfusionMatrix(num_classes=3)
+    confusion_matrix = nlp.evaluate(examples, metric, batch_size=32)
+    confusion_matrix = confusion_matrix.numpy()
+    accuracy = np.diagonal(confusion_matrix).sum() / confusion_matrix.sum()
+    assert round(accuracy, 4) >= .7978
+    # The model is chosen based on the dev set. Out of curiosity, we've
+    # verified (on the test set) top 5 models and the best performing is here:
+    # 'absa/classifier-lapt-0.2.1': .8040
