@@ -5,22 +5,6 @@ from aspect_based_sentiment_analysis.training import ConfusionMatrix
 
 
 @pytest.mark.slow
-@pytest.mark.timeout(25)  # First 10s requires a pipeline to initialize.
-def test_inference():
-    sentencier = absa.sentencizer()
-    nlp = absa.load(text_splitter=sentencier)
-    text = ("My wife and I and our 4 year old daughter stopped here "
-            "Friday-Sunday. We arrived about midday and there was a queue to "
-            "check in, which seemed to take ages to go down. Our check is was "
-            "fairly quick but not sure why others in front of us took so "
-            "long. Our room was \"ready\" although the sofa bed for our "
-            "daughter hadn't been made.")
-    aspects = ["reception", "bed", "service", "staff",
-               "location", "public", "breakfast"]
-    nlp(text, aspects)
-
-
-@pytest.mark.slow
 def test_semeval_classification_restaurant():
     examples = absa.load_examples(
         dataset='semeval', domain='restaurant', test=True)
@@ -48,3 +32,19 @@ def test_semeval_classification_laptop():
     # The model is chosen based on the dev set. Out of curiosity, we've
     # verified (on the test set) top 5 models and the best performing is here:
     # 'absa/classifier-lapt-0.2.1': .8040
+
+
+@pytest.mark.slow
+@pytest.mark.timeout(20)  # The pipeline requires first 15s to initialize.
+def test_inference():
+    sentencier = absa.sentencizer()
+    nlp = absa.load(text_splitter=sentencier)
+    text = ("My wife and I and our 4 year old daughter stopped here "
+            "Friday-Sunday. We arrived about midday and there was a queue to "
+            "check in, which seemed to take ages to go down. Our check is was "
+            "fairly quick but not sure why others in front of us took so "
+            "long. Our room was \"ready\" although the sofa bed for our "
+            "daughter hadn't been made.")
+    aspects = ["reception", "bed", "service", "staff",
+               "location", "public", "breakfast"]
+    nlp(text, aspects)

@@ -5,9 +5,12 @@ The task is to classify the sentiment of potentially long texts for several aspe
 The key idea is to build a modern NLP package which supports explanations of model predictions.
 The approximated decision explanations help you to infer how reliable predictions are.
 The package is standalone, scalable, and can be freely extended to your needs.
-In the article **Do You Trust in Aspect-Based Sentiment Analysis? Testing and Explaining Model Behaviors** ([Medium]()),
-we discuss the package in detail.
+We sum up thoughts in the article:
+<br>
 
+**Do You Trust in Aspect-Based Sentiment Analysis? Testing and Explaining Model Behaviors**
+(will be published soon).
+<br>
 
 There are over 100 repositories on GitHub around sentiment analysis 
 <sup>

@@ -23,7 +23,7 @@ tf.random.set_seed(1)
 
 @pytest.fixture
 def nlp() -> Pipeline:
-    name = 'absa/classifier-rest-0.1'
+    name = 'absa/classifier-rest-0.2'
     tokenizer = transformers.BertTokenizer.from_pretrained(name)
     # We pass a config explicitly (however, it can be downloaded automatically)
     config = BertABSCConfig.from_pretrained(name)
@@ -51,8 +51,7 @@ def test_preprocess(nlp: Pipeline):
                     "This is the test sentence 3.")
     task = nlp.preprocess(
         text=raw_document,
-        aspects=['aspect_1', 'aspect_2']
-    )
+        aspects=['aspect_1', 'aspect_2'])
     assert isinstance(task, Task)
     assert len(task.subtasks) == 2
     assert list(task.subtasks) == ['aspect_1', 'aspect_2']
@@ -147,22 +146,20 @@ def test_postprocess(nlp: Pipeline):
     slack, price = completed_task
     assert slack.text == price.text == text
     # The sentiment among fragments are different. We normalize scores.
-    assert np.allclose(slack.scores, [0.06, 0.46, 0.48], atol=0.01)
-    # Please note once gain that there is a problem
-    # with the neutral sentiment, model is over-fitted.
-    assert np.allclose(price.scores, [0.06, 0.42, 0.52], atol=0.01)
+    assert np.allclose(slack.scores, [0.03, 0.48, 0.48], atol=0.01)
+    # Please note that there is a problem with the neutral sentiment.
+    assert np.allclose(price.scores, [0.02, 0.49, 0.49], atol=0.01)
 
 
 def test_evaluate(nlp: Pipeline):
     examples = load_examples(
         dataset='semeval',
         domain='restaurant',
-        test=True
-    )
+        test=True)
     metric = tf.metrics.Accuracy()
-    result = nlp.evaluate(examples[:10], metric, batch_size=10)
+    result = nlp.evaluate(examples[:40], metric, batch_size=10)
     result = result.numpy()
-    # The model predicts the first 10 labels perfectly.
+    # The model predicts the first 40 labels perfectly.
     assert result == 1
-    result = nlp.evaluate(examples[10:20], metric, batch_size=10)
-    assert np.isclose(result, 0.95)
+    result = nlp.evaluate(examples[40:50], metric, batch_size=10)
+    assert np.isclose(result, 0.98)

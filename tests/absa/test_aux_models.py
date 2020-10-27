@@ -17,7 +17,7 @@ def test_basic_reference_recognizer():
     text = 'the automobile is so cool and the service is prompt and curious.'
     examples = [Example(text, 'breakfast'), Example(text, 'service'), Example(text, 'car')]
     recognizer = BasicReferenceRecognizer(threshold=0.08)
-    nlp = absa.load('absa/classifier-rest-0.1', reference_recognizer=recognizer)
+    nlp = absa.load('absa/classifier-rest-0.2', reference_recognizer=recognizer)
     predictions = nlp.transform(examples)
     prediction_1, prediction_2, prediction_3 = predictions
     assert not prediction_1.review.is_reference
@@ -61,7 +61,7 @@ def test_basic_pattern_recognizer():
             "were more accessible to small startups.")
     example = Example(text, aspect='price')
     recognizer = BasicPatternRecognizer()
-    nlp = absa.load('absa/classifier-rest-0.1', pattern_recognizer=recognizer)
+    nlp = absa.load('absa/classifier-rest-0.2', pattern_recognizer=recognizer)
     predictions = nlp.transform([example])
     prediction = next(predictions)
     assert isinstance(prediction, PredictedExample)
@@ -70,11 +70,11 @@ def test_basic_pattern_recognizer():
     pattern, *_ = prediction.review.patterns
     assert pattern.importance == 1
     assert list(zip(pattern.tokens, pattern.weights)) == \
-           [('we', 0.06), ('are', 0.13), ('great', 0.26), ('fans', 0.08),
-            ('of', 0.04), ('slack', 0.05), (',', 0.09), ('but', 0.37),
-            ('we', 0.23), ('wish', 1.0), ('the', 0.28), ('subscriptions', 0.21),
-            ('were', 0.42), ('more', 0.67), ('accessible', 0.2), ('to', 0.26),
-            ('small', 0.11), ('startups', 0.22), ('.', 0.18)]
+        [('we', 0.25), ('are', 0.44), ('great', 0.88), ('fans', 0.92),
+         ('of', 0.2), ('slack', 0.27), (',', 0.46), ('but', 1.0), ('we', 0.36),
+         ('wish', 0.95), ('the', 0.16), ('subscriptions', 0.39), ('were', 0.23),
+         ('more', 0.33), ('accessible', 0.24), ('to', 0.13), ('small', 0.14),
+         ('startups', 0.24), ('.', 0.28)]
 
 
 def test_basic_pattern_recognizer_text_token_indices():
