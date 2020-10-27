@@ -10,7 +10,7 @@ from aspect_based_sentiment_analysis.loads import NotFound
 
 
 def test_load():
-    nlp = load('absa/classifier-rest-0.1')
+    nlp = load('absa/classifier-rest-0.2')
     text = ("We are great fans of Slack, but we wish the subscriptions "
             "were more accessible to small startups.")
     slack, price = nlp(text, aspects=['slack', 'price'])

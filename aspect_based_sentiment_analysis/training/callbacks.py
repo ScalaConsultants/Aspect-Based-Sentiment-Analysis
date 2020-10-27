@@ -77,9 +77,9 @@ class Logger(Callback):
 @dataclass
 class History(Callback, ABC):
     name: str
+    metric: Callable[[], tf.keras.metrics.Metric]
     epoch: int = 0
-    verbose: bool = True
-    metric: Callable[[], tf.keras.metrics.Metric] = tf.keras.metrics.Mean
+    verbose: bool = False
     train: Dict = field(default_factory=dict)
     test: Dict = field(default_factory=dict)
     train_details: Dict = field(default_factory=dict)
@@ -101,9 +101,9 @@ class History(Callback, ABC):
         self.train[epoch] = self.train_metric.result().numpy()
         self.test[epoch] = self.test_metric.result().numpy()
         if self.verbose:
-            message = f'Epoch {epoch:3d} {self.name:12}    ' \
-                      f'Average Train {self.train[epoch]:.5f}    ' \
-                      f'Average Test {self.test[epoch]:.5f}'
+            message = f'Epoch {epoch:4d} {self.name:10} ' \
+                      f'Average Train {self.train[epoch]:1.3f}    ' \
+                      f'Average Test {self.test[epoch]:1.3f}'
             logger.info(message)
 
     @abstractmethod
@@ -117,31 +117,46 @@ class History(Callback, ABC):
 
 @dataclass
 class LossHistory(History):
-    metric = tf.keras.metrics.Mean
     name: str = 'Loss'
+    metric: Callable = tf.metrics.Mean
+    verbose: bool = False
 
     def on_train_batch_end(self, i: int, batch, *train_step_outputs):
         loss_value, *model_outputs = train_step_outputs
+        loss_value = loss_value.numpy()
         self.train_metric(loss_value)
-        self.train_details[self.epoch].extend(loss_value.numpy())
+        self.train_details[self.epoch].extend(loss_value)
+        if self.verbose:
+            message = f'Train Batch {i+1:4d} Loss: {loss_value.mean():9.3f}'
+            logger.info(message)
 
     def on_test_batch_end(self, i: int, batch, *test_step_outputs):
         loss_value, *model_outputs = test_step_outputs
+        loss_value = loss_value.numpy()
         self.test_metric(loss_value)
-        self.test_details[self.epoch].extend(loss_value.numpy())
+        self.test_details[self.epoch].extend(loss_value)
+        if self.verbose:
+            message = f'Test Batch {i+1:4d} Loss: {loss_value.mean():9.3f}'
+            logger.info(message)
 
 
 @dataclass
 class ModelCheckpoint(Callback):
     model: transformers.TFPreTrainedModel
-    loss_history: LossHistory
+    history: History
     home_dir: str = 'checkpoints'
     best_result: float = np.inf
     best_model_dir: str = ''
     verbose: bool = True
+    direction: str = 'minimize'
 
     def __post_init__(self):
         """ Create the directory for saving checkpoints. """
+        if self.direction not in ['minimize', 'maximize']:
+            raise ValueError
+        if self.direction == 'maximize':
+            self.best_result = 0
+
         if not os.path.isdir(self.home_dir):
             abs_path = os.path.abspath(self.home_dir)
             text = f'Make a checkpoint directory: {abs_path}'
@@ -150,8 +165,10 @@ class ModelCheckpoint(Callback):
 
     def on_epoch_end(self, epoch: int):
         """ Pass the `ModelCheckpoint` callback after the `LossHistory`. """
-        result = self.loss_history.test[epoch]
-        if result < self.best_result:
+        result = self.history.test[epoch]
+        diff = self.best_result - result
+        is_better = diff > 0 if self.direction == 'minimize' else diff < 0
+        if is_better:
             name = f'epoch-{epoch:02d}-{result:.2f}'
             model_dir = os.path.join(self.home_dir, name)
             os.mkdir(model_dir)
@@ -166,21 +183,30 @@ class ModelCheckpoint(Callback):
 
 @dataclass
 class EarlyStopping(Callback):
-    loss_history: LossHistory
+    history: History
     patience: int = 0
     min_delta: float = 0
     verbose: bool = True
     best_result: float = np.inf
     current_patience: int = 0
+    direction: str = 'minimize'
+
+    def __post_init__(self):
+        if self.direction not in ['minimize', 'maximize']:
+            raise ValueError
+        if self.direction == 'maximize':
+            self.best_result = 0
 
     def on_epoch_end(self, epoch: int):
         """ """
-        result = self.loss_history.test[epoch]
-        is_better = (self.best_result - result) > self.min_delta
+        result = self.history.test[epoch]
+        diff = self.best_result - result
+        is_better = diff > self.min_delta if self.direction == 'minimize' \
+               else diff < self.min_delta * -1
         if is_better:
             self.best_result = result
             self.current_patience = 0
             return
         self.current_patience += 1
-        if self.current_patience > self.patience:
+        if self.current_patience >= self.patience:
             raise StopTraining

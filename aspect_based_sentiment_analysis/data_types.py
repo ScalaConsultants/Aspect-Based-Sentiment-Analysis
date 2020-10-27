@@ -1,7 +1,6 @@
 from enum import IntEnum
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Dict
-from typing import OrderedDict
 from typing import Iterable
 from typing import List
 from typing import Tuple
@@ -58,24 +57,17 @@ class TokenizedExample:
 class Pattern:
     """ The weighted tokens describe the pattern. The pattern
     is an elementary tool to explain the model reasoning. Each
-    pattern has a different `impact` to the final prediction. """
-    impact: float
+    pattern has a different `importance` to the final prediction. """
+    importance: float
     tokens: List[str]
     weights: List[float]
 
 
 @dataclass(frozen=True)
-class AspectRepresentation:
-    """ The aspect representation contains two special patterns
-    related to the aspect. Firstly, the `come_from` weights
-    describe the aspect final representation. They tend to be
-    sort of nominal modifiers. Secondly, the `look_at` weights
-    describe how the aspect affects different words. These
-    weights seem to indicates words which show coreference
-    to the aspect. """
-    tokens: List[str]
-    come_from: List[float]
-    look_at: List[float]
+class Review:
+    """ """
+    is_reference: bool = None
+    patterns: List[Pattern] = None
 
 
 @dataclass(frozen=True)
@@ -85,8 +77,11 @@ class PredictedExample(TokenizedExample, LabeledExample):
     representation and patterns are optional. They are if
     a pipeline has a pattern recognizer. """
     scores: List[float]
-    aspect_representation: AspectRepresentation = None
-    patterns: List[Pattern] = None
+    review: Review = None
+
+    @classmethod
+    def from_example(cls, example: TokenizedExample, **kwargs):
+        return cls(**asdict(example), **kwargs)
 
 
 @dataclass(frozen=True)
@@ -103,9 +98,9 @@ class SubTask:
     context information. """
     text: str
     aspect: str
-    examples: List[TokenizedExample]
+    examples: List[Example]
 
-    def __iter__(self) -> Iterable[TokenizedExample]:
+    def __iter__(self) -> Iterable[Example]:
         return iter(self.examples)
 
 
@@ -129,7 +124,7 @@ class Task:
     into subtasks, where each subtask concerns one aspect. """
     text: str
     aspects: List[str]
-    subtasks: OrderedDict[str, SubTask]
+    subtasks: Dict[str, SubTask]    # OrderedDict (python 3.6 compatibility)
 
     @property
     def indices(self) -> List[Tuple[int, int]]:
@@ -144,11 +139,11 @@ class Task:
         return indices
 
     @property
-    def batch(self) -> List[TokenizedExample]:
+    def examples(self) -> List[Example]:
         """ Stack example from each subtask into one batch. """
         return [example for subtask in self for example in subtask]
 
-    def __getitem__(self, aspect: str):
+    def __getitem__(self, aspect: str) -> SubTask:
         return self.subtasks[aspect]
 
     def __iter__(self) -> Iterable[SubTask]:
@@ -180,15 +175,34 @@ class InputBatch:
 
 
 @dataclass(frozen=True)
+class Output:
+    """ The model output of a single example. The model returns not
+    only scores, the softmax of logits, but also stacked hidden states,
+    attentions, and attention gradients with respect to the model output.
+    All of them are useful not only for the classification, but also
+    we use them to explain model decisions. """
+    scores: tf.Tensor  # [classes]
+    hidden_states: tf.Tensor  # [layer, sequence, embedding]
+    attentions: tf.Tensor  # [layer, head, attention, attention]
+    attention_grads: tf.Tensor  # [layer, head, attention, attention]
+
+
+@dataclass(frozen=True)
 class OutputBatch:
-    """ The model returns not only scores, the softmax of
-    logits, but also stacked hidden states [example, layer,
-    sequence, embedding], attentions [example, layer, head,
-    attention, attention], and attention gradients with
-    respect to the model output. All of them are useful not
-    only for the classification, but also we use them to probe
-    and understand model's decision-making. """
-    scores: tf.Tensor
-    hidden_states: tf.Tensor
-    attentions: tf.Tensor
-    attention_grads: tf.Tensor
+    """ The model batch output. """
+    scores: tf.Tensor  # [example, classes]
+    hidden_states: tf.Tensor  # [example, layer, sequence, embedding]
+    attentions: tf.Tensor  # [example, layer, head, attention, attention]
+    attention_grads: tf.Tensor  # [example, layer, head, attention, attention]
+
+    def __getitem__(self, i: int) -> Output:
+        return Output(
+            self.scores[i],
+            self.hidden_states[i],
+            self.attentions[i],
+            self.attention_grads[i]
+        )
+
+    def __iter__(self) -> Iterable[Output]:
+        num_examples, classes = self.scores.shape
+        return (self[i] for i in range(num_examples))

@@ -13,7 +13,7 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(config, items):
     if config.getoption("--run-slow"):
-        # --run-run-slow given in cli: do not skip slow checks
+        # --run-slow given in cli: do not skip slow checks
         return
     reason_desc = "need --run-slow option to run"
     skip_sanity_check = pytest.mark.skip(reason=reason_desc)

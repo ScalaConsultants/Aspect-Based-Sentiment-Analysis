@@ -6,7 +6,7 @@ from transformers import BertTokenizer
 
 from aspect_based_sentiment_analysis import TokenizedExample
 from aspect_based_sentiment_analysis import make_alignment
-from aspect_based_sentiment_analysis import merge_input_attentions
+from aspect_based_sentiment_analysis import merge_tensor
 from aspect_based_sentiment_analysis import tokenize
 
 np.random.seed(1)
@@ -50,7 +50,7 @@ def test_make_alignment(example: TokenizedExample, tokenizer: BertTokenizer):
     assert alignment == example.alignment
 
 
-def test_merge_input_attentions(example: TokenizedExample):
+def test_merge(example: TokenizedExample):
     # Set up fake attentions
     n = len(example.subtokens)
     attentions = np.zeros([12, 12, 53, 53])
@@ -61,7 +61,7 @@ def test_merge_input_attentions(example: TokenizedExample):
     assert np.isclose(tf.reduce_sum(attentions[0, 0, n, :]), 0.0)
 
     n_align = len(example.alignment)
-    α = merge_input_attentions(attentions, example.alignment)
+    α = merge_tensor(attentions, example.alignment)
 
     # Convert to numpy arrays.
     attentions = attentions.numpy()
@@ -73,7 +73,7 @@ def test_merge_input_attentions(example: TokenizedExample):
 
     layer, head = 5, 7  # Randomly selected layer and head.
     # We choose an arbitrary (not divided) token. At the beginning, the indices
-    # are the same. Attentions between not divided tokens should be unchanged.
+    # are the same. Attentions between not divided tokens should be unchanged.
     assert attentions[layer, head, 1, 2] == α[layer, head, 1, 2]
 
     # For attention _to_ a split-up word, we sum up the attention weights

@@ -59,12 +59,12 @@ def test_loop(test_step: Callable,
 def wrap_step_into_strategy(step: Callable, strategy: tf.distribute.Strategy):
     """ """
     def one_device(batch):
-        return strategy.experimental_run_v2(step, args=batch)
+        return strategy.run(step, args=batch)
 
     def distributed(batch):
         dataset = tf.data.Dataset.from_tensors(batch)
         dist_batch, = strategy.experimental_distribute_dataset(dataset)
-        per_replica_outputs = strategy.experimental_run_v2(step, args=dist_batch)
+        per_replica_outputs = strategy.run(step, args=dist_batch)
         with tf.device('CPU'):
             return [tf.concat(per_replica_output.values, axis=0)
                     for per_replica_output in per_replica_outputs]
