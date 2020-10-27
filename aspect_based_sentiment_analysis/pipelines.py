@@ -276,7 +276,7 @@ class BertPipeline(Pipeline):
         encoded = self.tokenizer.batch_encode_plus(
             token_pairs,
             add_special_tokens=True,
-            pad_to_max_length='right',
+            padding=True,
             return_tensors='tf'
         )
         batch = InputBatch(
