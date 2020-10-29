@@ -16,7 +16,7 @@ from aspect_based_sentiment_analysis import Pattern
 def test_basic_reference_recognizer():
     text = 'the automobile is so cool and the service is prompt and curious.'
     examples = [Example(text, 'breakfast'), Example(text, 'service'), Example(text, 'car')]
-    recognizer = BasicReferenceRecognizer(threshold=0.08)
+    recognizer = BasicReferenceRecognizer(weights=(-0.025, 44))
     nlp = absa.load('absa/classifier-rest-0.2', reference_recognizer=recognizer)
     predictions = nlp.transform(examples)
     prediction_1, prediction_2, prediction_3 = predictions
@@ -28,7 +28,10 @@ def test_basic_reference_recognizer():
 def test_basic_reference_recognizer_from_pretrained():
     name = 'absa/basic_reference_recognizer-rest-0.1'
     recognizer = BasicReferenceRecognizer.from_pretrained(name)
-    assert recognizer.threshold == 0.08
+    assert np.allclose(recognizer.weights, [-0.024, 44.443], atol=0.001)
+    name = 'absa/basic_reference_recognizer-lapt-0.1'
+    recognizer = BasicReferenceRecognizer.from_pretrained(name)
+    assert np.allclose(recognizer.weights, [-0.175, 40.165], atol=0.001)
 
 
 def test_basic_reference_recognizer_transform():

@@ -4,7 +4,6 @@ from typing import List
 from typing import Set
 from typing import Tuple
 from dataclasses import dataclass
-from dataclasses import field
 
 import numpy as np
 import tensorflow as tf
@@ -52,27 +51,28 @@ class BasicReferenceRecognizer(ReferenceRecognizer, PretrainedConfig):
     """
     The Basic Reference Recognizer predicts whether a text relates to an
     aspect or not. Briefly, it represents a text and an aspect as two
-    vectors, and predicts that a text relates to an aspect if the cosine
-    similarity is bigger than a threshold. It calculates text and aspect
+    vectors, measure cosine similarity between them, and then use the simple
+    logistic regression to make a prediction. It calculates text and aspect
     representations by summing their subtoken vectors, context-independent
-    embeddings that come from the embedding first layer.
-
-    This model has only one parameter, nonetheless, we show how to take a use
-    of the methods `save_pretrained` and `load_pretrained`. They are useful
-    especially for more complex models.
+    embeddings that come from the embedding first layer. This model has two
+    parameter (β_0, β_1). Benefit from two useful methods `save_pretrained`
+    and `load_pretrained` (to persist the model for future use).
     """
-    threshold: float
-    model_type: str = field(default='reference_recognizer')
+    weights: Tuple[float, float]
+    model_type: str = 'reference_recognizer'
 
     def __call__(
             self,
             example: TokenizedExample,
             output: Output
     ) -> bool:
+        β_0, β_1 = self.weights
+        n = len(example.subtokens)
+        hidden_states = output.hidden_states[:, :n, :]  # Trim padded tokens.
         text_mask, aspect_mask = self.text_aspect_subtoken_masks(example)
-        similarity = self.transform(output.hidden_states, text_mask, aspect_mask)
-        is_reference = bool(similarity > self.threshold)
-        return is_reference
+        similarity = self.transform(hidden_states, text_mask, aspect_mask)
+        is_reference = β_0 + β_1 * similarity > 0
+        return bool(is_reference)   # Do not use the numpy bool object.
 
     @staticmethod
     def transform(
