@@ -1,5 +1,5 @@
 # Version of the aspect-based-sentiment-analysis package
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 from .alignment import tokenize
 from .alignment import make_alignment
