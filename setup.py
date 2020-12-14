@@ -24,8 +24,8 @@ setup(
     include_package_data=False,
     packages=find_packages(),
     install_requires=[
-        'tensorflow>=2.1',
-        'transformers>=2.5',
+        'tensorflow==2.2',
+        'transformers==2.5',
         'pytest',
         'scikit-learn',
         'ipython',
