@@ -8,8 +8,8 @@ The package is standalone, scalable, and can be freely extended to your needs.
 We sum up thoughts in the article:
 <br>
 
-**Do You Trust in Aspect-Based Sentiment Analysis? Testing and Explaining Model Behaviors**
-(will be published soon).
+[**Do You Trust in Aspect-Based Sentiment Analysis? Testing and Explaining Model Behaviors**](https://rafalrolczynski.com/2021/03/07/aspect-based-sentiment-analysis/)
+
 <br>
 
 There are over 100 repositories on GitHub around sentiment analysis 
@@ -161,7 +161,7 @@ Even if the attention values have thought-provoking properties, for example,
 they encode rich linguistic relationships, there is no proven chain of causation.
 There are a lot of articles that illustrate various concerns why drawing conclusions about model reasoning
 directly from attentions might be misleading.
-In the article [here], we validate and analyse explanations in detail.
+In the article [here](https://rafalrolczynski.com/2021/03/07/aspect-based-sentiment-analysis/), we validate and analyse explanations in detail.
 
 <br>
 
