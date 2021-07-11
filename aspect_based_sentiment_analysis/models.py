@@ -1,9 +1,12 @@
 import logging
 from abc import ABC
 from abc import abstractmethod
-from typing import Tuple
+from typing import Tuple, Optional, Union
+
+import numpy as np
 
 import transformers
+from transformers.modeling_tf_utils import TFModelInputType
 import tensorflow as tf
 from tensorflow.keras import layers
 
@@ -120,9 +123,11 @@ class BertABSClassifier(ABSClassifier, transformers.TFBertPreTrainedModel):
     def __init__(self, config: BertABSCConfig, **kwargs):
         super().__init__(config, **kwargs)
         self.bert = transformers.TFBertMainLayer(
-            config, name="bert")
+            config, name="bert"
+        )
         initializer = transformers.modeling_tf_utils.get_initializer(
-            config.initializer_range)
+            config.initializer_range
+        )
         self.dropout = layers.Dropout(config.hidden_dropout_prob)
         self.classifier = layers.Dense(
             config.num_polarities,
@@ -131,21 +136,47 @@ class BertABSClassifier(ABSClassifier, transformers.TFBertPreTrainedModel):
         )
 
     def call(
-            self,
-            token_ids: tf.Tensor,
-            attention_mask: tf.Tensor = None,
-            token_type_ids: tf.Tensor = None,
-            training: bool = False,
-            **bert_kwargs
+        self,
+        input_ids: Optional[TFModelInputType] = None,
+        attention_mask: Optional[Union[np.ndarray, tf.Tensor]] = None,
+        token_type_ids: Optional[Union[np.ndarray, tf.Tensor]] = None,
+        position_ids: Optional[Union[np.ndarray, tf.Tensor]] = None,
+        head_mask: Optional[Union[np.ndarray, tf.Tensor]] = None,
+        inputs_embeds: Optional[Union[np.ndarray, tf.Tensor]] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+        training: Optional[bool] = False,
+        **kwargs,
     ) -> Tuple[tf.Tensor, Tuple[tf.Tensor, ...], Tuple[tf.Tensor, ...]]:
-        outputs = self.bert(
-            inputs=token_ids,
+        inputs = transformers.modeling_tf_utils.input_processing(
+            func=self.call,
+            config=self.config,
+            input_ids=input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
             training=training,
-            **bert_kwargs
+            kwargs_call=kwargs,
         )
-        sequence_output, pooled_output, hidden_states, attentions = outputs
+        outputs = self.bert(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            token_type_ids=inputs["token_type_ids"],
+            position_ids=inputs["position_ids"],
+            head_mask=inputs["head_mask"],
+            inputs_embeds=inputs["inputs_embeds"],
+            output_attentions=inputs["output_attentions"],
+            output_hidden_states=inputs["output_hidden_states"],
+            return_dict=inputs["return_dict"],
+            training=inputs["training"],
+        )
+        pooled_output = outputs[1]
         pooled_output = self.dropout(pooled_output, training=training)
         logits = self.classifier(pooled_output)
-        return logits, hidden_states, attentions
+        return logits, outputs.hidden_states, outputs.attentions

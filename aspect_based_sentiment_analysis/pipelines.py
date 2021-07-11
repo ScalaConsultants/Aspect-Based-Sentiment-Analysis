@@ -92,8 +92,7 @@ class _Pipeline(ABC):
         """
 
     @abstractmethod
-    def tokenize(self, examples: Iterable[Example]) -> Iterable[
-        TokenizedExample]:
+    def tokenize(self, examples: Iterable[Example]) -> Iterable[TokenizedExample]:
         """
         Tokenize the example. The model can not process the raw pair of two
         strings (text, aspect) directly.
@@ -113,8 +112,8 @@ class _Pipeline(ABC):
     def encode(self, examples: Iterable[TokenizedExample]) -> InputBatch:
         """
         Encode tokenized examples. The input batch is a container of tensors
-        crucial for the model to make a prediction. The names are compatible 
-        with the *transformers* package. 
+        crucial for the model to make a prediction. The names are compatible
+        with the *transformers* package.
 
         Parameters
         ----------
@@ -250,7 +249,7 @@ class Pipeline(_Pipeline):
         # output including hidden states and attentions.
         with tf.GradientTape() as tape:
             logits, hidden_states, attentions = self.model.call(
-                token_ids=input_batch.token_ids,
+                input_ids=input_batch.token_ids,
                 attention_mask=input_batch.attention_mask,
                 token_type_ids=input_batch.token_type_ids
             )
