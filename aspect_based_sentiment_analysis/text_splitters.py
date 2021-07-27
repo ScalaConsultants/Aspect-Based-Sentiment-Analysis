@@ -14,7 +14,7 @@ def sentencizer(name: str = 'en_core_web_sm') -> Callable[[str], List[str]]:
 
     def wrapper(text: str) -> List[str]:
         doc = nlp(text)
-        sentences = [sent.string.strip() for sent in doc.sents]
+        sentences = [str(sent).strip() for sent in doc.sents]
         return sentences
 
     return wrapper

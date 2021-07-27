@@ -80,7 +80,7 @@ class ClassifierDataset(InMemoryDataset):
         encoded = self.tokenizer.batch_encode_plus(
             pairs,
             add_special_tokens=True,
-            pad_to_max_length=True,
+            padding=True,
             return_attention_masks=True,
             return_tensors='tf'
         )
