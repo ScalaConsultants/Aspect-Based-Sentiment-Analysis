@@ -200,6 +200,7 @@ git clone git@github.com:ScalaConsultants/Aspect-Based-Sentiment-Analysis.git
 conda env create -f=environment.yml
 conda activate Aspect-Based-Sentiment-Analysis
 ```
+The package works with the Python in the version 3.7 (the same as in Colab 2021).
 
 <br>
 

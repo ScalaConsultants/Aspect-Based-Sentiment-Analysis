@@ -1,11 +1,10 @@
 name: Aspect-Based-Sentiment-Analysis
 dependencies:
-  - python=3.6.9
+  - python=3.7
   - scikit-learn=0.24.2
   - pytest=6.2.4
   - pytest-timeout=1.4.2
   - ipython=7.3
-  - spacy=3.1.0
   - dataclasses=0.8
   - pip:
       - tensorflow==2.5.0
@@ -13,3 +12,4 @@ dependencies:
       - testfixtures==6.17.1
       - transformers==4.8.2
       - optuna==2.8.0
+      - spacy==3.1.1

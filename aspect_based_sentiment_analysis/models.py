@@ -6,9 +6,9 @@ from typing import Tuple, Optional, Union
 import numpy as np
 
 import transformers
-from transformers.modeling_tf_utils import TFModelInputType
 import tensorflow as tf
 from tensorflow.keras import layers
+from transformers.modeling_tf_utils import TFModelInputType
 
 logger = logging.getLogger('absa.model')
 
@@ -56,7 +56,7 @@ class ABSClassifier(tf.keras.Model, ABC):
     @abstractmethod
     def call(
             self,
-            token_ids: tf.Tensor,
+            input_ids: tf.Tensor,
             attention_mask: tf.Tensor = None,
             token_type_ids: tf.Tensor = None,
             training: bool = False,
@@ -70,7 +70,7 @@ class ABSClassifier(tf.keras.Model, ABC):
 
         Parameters
         ----------
-        token_ids
+        input_ids
             Indices of input sequence subtokens in the vocabulary.
         attention_mask
             Bool mask used to avoid performing attention on padding token

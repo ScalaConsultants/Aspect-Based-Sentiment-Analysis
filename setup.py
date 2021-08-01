@@ -24,8 +24,8 @@ setup(
     include_package_data=False,
     packages=find_packages(),
     install_requires=[
-        'tensorflow==2.5.0',
-        'transformers==4.8.2',
+        'tensorflow==2.5',
+        'transformers==4.8',
         'pytest',
         'scikit-learn',
         'ipython',
@@ -34,5 +34,5 @@ setup(
         'optuna',
         'spacy'
     ],
-    python_requires='>=3.6.9',
+    python_requires='==3.7.*',
 )
