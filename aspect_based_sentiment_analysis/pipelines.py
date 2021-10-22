@@ -299,7 +299,7 @@ class Pipeline(_Pipeline):
             examples = batch_examples[start:end]
             # Examples should have the same aspect (an implicit check).
             aspect, = {e.aspect for e in examples}
-            scores = np.max([e.scores for e in examples], axis=0)
+            scores = np.max([e.scores for e in examples], axis=0).astype(float)
             scores /= np.linalg.norm(scores, ord=1)
             sentiment_id = np.argmax(scores).astype(int)
             aspect_document = CompletedSubTask(
