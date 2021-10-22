@@ -47,7 +47,7 @@ class Professor(_Professor):
 
         if review.is_reference is False:
             sentiment = Sentiment.neutral
-            scores = [0, 0, 0]
+            scores = [0.0, 0.0, 0.0]
 
         prediction = PredictedExample.from_example(
             example, sentiment=sentiment, scores=scores, review=review)
