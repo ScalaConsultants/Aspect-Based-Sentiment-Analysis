@@ -28,7 +28,7 @@ def load(
         **model_kwargs
 ) -> Pipeline:
     """ Load ready to use pipelines. Files are stored on
-    the HaggingFace AWS S3. """
+    the HuggingFace AWS S3. """
     try:
         config = BertABSCConfig.from_pretrained(name, **model_kwargs)
         model = BertABSClassifier.from_pretrained(name, config=config)
